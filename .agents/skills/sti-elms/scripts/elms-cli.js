@@ -125,8 +125,21 @@ async function downloadSubjectHandouts(page, subject) {
 
 export async function runElmsCli(customArgs = null) {
   const args = customArgs || process.argv.slice(2);
+  const isHelp = args.includes('--help') || args.includes('-h');
   const isList = args.includes('--list') || args.includes('-l');
   const subjectArg = args.find((a, i) => args[i - 1] === '--subject' || args[i - 1] === '-s');
+
+  if (isHelp) {
+    console.log("==========================================================");
+    console.log("🎓 STI ELMS SMART AUTOMATION CLI");
+    console.log("==========================================================");
+    console.log("\nUsage:");
+    console.log("  node elms-cli.js --list               # List all enrolled subjects");
+    console.log("  node elms-cli.js --subject <name>     # Download handouts for a subject");
+    console.log("  node elms-cli.js --all                # Download handouts for all subjects");
+    console.log("  node elms-cli.js --help               # Show this help guide");
+    return;
+  }
 
   if (isList) {
     console.log("\n📋 Enrolled STI ELMS Subjects:");

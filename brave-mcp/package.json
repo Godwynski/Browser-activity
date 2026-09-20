@@ -10,7 +10,8 @@
     "test:protocol": "node test/test-mcp-protocol.js",
     "test:battery": "node test/test-battery.js",
     "test:cobrowse": "node test/test-co-browsing.js",
-    "test:tokens": "node test/test-token-optimizations.js"
+    "test:tokens": "node test/test-token-optimizations.js",
+    "test:all": "npm run test:protocol && npm run test:battery && npm run test:tokens && npm run test:cobrowse && npm test"
   },
 
   "dependencies": {

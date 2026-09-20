@@ -249,6 +249,23 @@ export class BraveManager {
   }
 
   /**
+   * Evaluates if a page belongs to the dedicated Agent Window.
+   */
+  async isAgentPage(page) {
+    if (!page || page.isClosed()) return false;
+    if (page === this.agentPage) return true;
+    try {
+      const url = page.url();
+      if (url.includes('#agent-')) return true;
+      const title = await page.title().catch(() => '');
+      if (title.includes('Agent Workspace') || title.includes('[🤖 Agent')) return true;
+      const isTagged = await page.evaluate(() => !!window.__ANTIGRAVITY_AGENT_WINDOW__).catch(() => false);
+      if (isTagged) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  /**
    * Retrieves the dedicated agent page (in the separate agent window).
    * Automatically creates the agent window if it doesn't already exist.
    */
@@ -260,18 +277,12 @@ export class BraveManager {
     // Check if an existing page is already marked as the agent window
     const pages = await this.getPages();
     for (const p of pages) {
-      if (p.isClosed()) continue;
-      try {
-        const isTagged = await p.evaluate(() => !!window.__ANTIGRAVITY_AGENT_WINDOW__).catch(() => false);
-        const url = p.url();
-        const title = await p.title().catch(() => '');
-        if (isTagged || url.includes('#agent-') || title.includes('Agent Workspace') || title.includes('[🤖 Agent')) {
-          this.agentPage = p;
-          this._setupAgentPageListeners(p);
-          await this._setupPageDownloads(p);
-          return p;
-        }
-      } catch (e) {}
+      if (await this.isAgentPage(p)) {
+        this.agentPage = p;
+        this._setupAgentPageListeners(p);
+        await this._setupPageDownloads(p);
+        return p;
+      }
     }
 
     if (autoCreate) {
@@ -303,7 +314,12 @@ export class BraveManager {
 
     // User's active page requested
     if (target === 'user' || target === 'active') {
-      const userPages = pages.filter(p => p !== this.agentPage && !p.url().includes('#agent-'));
+      const userPages = [];
+      for (const p of pages) {
+        if (!(await this.isAgentPage(p))) {
+          userPages.push(p);
+        }
+      }
       if (userPages.length > 0) {
         // Prioritize the tab currently visible in user's browser window
         for (const up of userPages) {
@@ -388,7 +404,7 @@ export class BraveManager {
         url = p.url();
       } catch (e) {}
 
-      const isAgent = (p === this.agentPage) || url.includes('#agent-') || title.includes('Agent Workspace');
+      const isAgent = await this.isAgentPage(p);
 
       tabs.push({
         index: i,

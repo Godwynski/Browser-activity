@@ -49,15 +49,18 @@ The MCP server is registered in your global Antigravity configuration:
 ```
 
 ### 3. Verification Tests
-Run the comprehensive 12-point automated test battery:
+Run the entire test battery (Protocol, 14-point Battery, Token Optimizations, Co-Browsing Isolation, Live CDP):
 ```bash
 cd brave-mcp
-npm run test:battery
+npm run test:all
 ```
 
-Or test live CDP against your open Brave window:
+Or run individual test suites:
 ```bash
-npm test
+npm run test:battery   # 14-point critical guarantee test battery
+npm run test:tokens    # Token reduction, compact format & batch actions
+npm run test:cobrowse  # Window isolation & co-browsing verification
+npm test               # Live CDP diagnostic test
 ```
 
 ---
@@ -147,6 +150,7 @@ c:/Users/Godwyn/Documents/Projects/Browser activity/
 │   └── launch-brave.cmd           # Double-click batch launcher
 ├── brave-mcp/
 │   ├── package.json               # Dependencies: @modelcontextprotocol/sdk, playwright-core
+│   ├── run-mcp.cmd                # Wrapper used by Antigravity MCP config to launch the server
 │   ├── scripts/
 │   │   └── download-handouts.js   # Fast batch downloader with CLI argument support
 │   ├── src/
@@ -161,7 +165,7 @@ c:/Users/Godwyn/Documents/Projects/Browser activity/
 │       ├── test-mcp-protocol.js   # MCP stdio protocol test (6 tools verified)
 │       ├── test-co-browsing.js    # Window isolation & co-browsing verification
 │       ├── test-token-optimizations.js # Token savings, compact format, eval, batch test
-│       └── test-battery.js        # 12-point automated test suite
+│       └── test-battery.js        # 14-point automated test suite
 ├── .gitignore                     # Enforces separation of code vs runtime artifacts
 └── README.md                      # Documentation
 ```

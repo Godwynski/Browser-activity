@@ -15,12 +15,16 @@ async function testParallelCoBrowsing() {
     console.log(`  [${t.index}] ${t.isAgentWindow ? '🤖 [AGENT]' : '👤 [USER]'} ${t.title} (${t.url})`);
   });
 
-  const userTab = tabsBefore.find(t => !t.isAgentWindow);
+  let userTab = tabsBefore.find(t => !t.isAgentWindow);
+  let temporaryUserPage = null;
   if (!userTab) {
-    console.log("⚠️ No user tab found, but proceeding with agent window validation.");
-  } else {
-    console.log(`\n👤 User Tab Baseline: [${userTab.index}] "${userTab.title}" at ${userTab.url}`);
+    console.log("⚠️ No existing user tab found. Spawning temporary user baseline tab...");
+    temporaryUserPage = await brave.newTab('about:blank');
+    const refreshedTabs = await brave.listTabs();
+    userTab = refreshedTabs.find(t => !t.isAgentWindow);
   }
+
+  console.log(`\n👤 User Tab Baseline: [${userTab.index}] "${userTab.title}" at ${userTab.url}`);
 
   // 2. Get the dedicated Agent Window Page
   console.log("\n🤖 Acquiring dedicated Agent Window...");
@@ -36,20 +40,22 @@ async function testParallelCoBrowsing() {
 
   // 4. Verify that the User Tab was NOT touched or navigated
   const tabsAfter = await brave.listTabs();
-  if (userTab) {
-    const userTabAfter = tabsAfter[userTab.index];
-    console.log(`\n🔍 Verifying User Tab integrity...`);
-    console.log(`   Expected Title: "${userTab.title}"`);
-    console.log(`   Actual Title:   "${userTabAfter.title}"`);
-    console.log(`   Expected URL:   "${userTab.url}"`);
-    console.log(`   Actual URL:     "${userTabAfter.url}"`);
+  const userTabAfter = tabsAfter[userTab.index];
+  console.log(`\n🔍 Verifying User Tab integrity...`);
+  console.log(`   Expected Title: "${userTab.title}"`);
+  console.log(`   Actual Title:   "${userTabAfter.title}"`);
+  console.log(`   Expected URL:   "${userTab.url}"`);
+  console.log(`   Actual URL:     "${userTabAfter.url}"`);
 
-    if (userTabAfter.url === userTab.url) {
-      console.log("✅ USER TAB REMAINS 100% UNTOUCHED! Window isolation verified.");
-    } else {
-      console.error("❌ USER TAB WAS COLLIDED WITH!");
-      process.exit(1);
-    }
+  if (temporaryUserPage) {
+    await temporaryUserPage.close().catch(() => {});
+  }
+
+  if (userTabAfter.url === userTab.url) {
+    console.log("✅ USER TAB REMAINS 100% UNTOUCHED! Window isolation verified.");
+  } else {
+    console.error("❌ USER TAB WAS COLLIDED WITH!");
+    process.exit(1);
   }
 
   console.log("\n🎉 PARALLEL CO-BROWSING VERIFICATION COMPLETE & PASSED!");
