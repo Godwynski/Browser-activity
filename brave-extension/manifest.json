@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Antigravity Mission Control (STI ELMS HUD)",
+  "version": "1.0.0",
+  "description": "Real-time task monitor, script log stream, and 1-click Antigravity automation bridge for STI ELMS.",
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Antigravity Mission Control"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://elms.sti.edu/*",
+    "http://localhost:8765/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://elms.sti.edu/*"],
+      "js": ["content/hud.js"],
+      "css": ["content/hud.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

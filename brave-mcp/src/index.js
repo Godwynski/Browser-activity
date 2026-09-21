@@ -9,6 +9,7 @@ import { BraveManager } from './browser.js';
 import { BrowserObserver } from './observer.js';
 import { StateVerifier } from './verifier.js';
 import { ActionEngine } from './actions.js';
+import { globalTelemetry } from './telemetry-server.js';
 
 const brave = new BraveManager();
 const observer = new BrowserObserver();
@@ -591,6 +592,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start stdio transport
 async function main() {
+  await globalTelemetry.start();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

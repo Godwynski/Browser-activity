@@ -13,9 +13,9 @@
     "test:tokens": "node test/test-token-optimizations.js",
     "test:all": "npm run test:protocol && npm run test:battery && npm run test:tokens && npm run test:cobrowse && npm test"
   },
-
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
-    "playwright-core": "^1.50.1"
+    "playwright-core": "^1.50.1",
+    "ws": "^8.21.3"
   }
 }

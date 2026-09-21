@@ -3,9 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { BraveManager } from '../../../../brave-mcp/src/browser.js';
 import { PATHS, ensureArtifactDirs } from '../../../../brave-mcp/src/paths.js';
+import { telemetry } from '../../../../brave-mcp/src/telemetry.js';
 
 ensureArtifactDirs();
-const BASE_OUTPUT_DIR = PATHS.elmsHandouts;
 
 export const ENROLLED_SUBJECTS = [
   { name: 'Computer Graphics Programming', classId: '5713354' },
@@ -18,11 +18,13 @@ export const ENROLLED_SUBJECTS = [
 ];
 
 async function downloadSubjectHandouts(page, subject) {
-  const subjectDir = path.join(BASE_OUTPUT_DIR, subject.name);
+  const courseFolder = subject.name.replace(/\s+/g, '_');
+  const subjectDir = path.join(PATHS.root, 'courses', courseFolder, 'handouts');
   if (!fs.existsSync(subjectDir)) {
     fs.mkdirSync(subjectDir, { recursive: true });
   }
 
+  telemetry.log(`Navigating to ${subject.name} (Class ID: ${subject.classId})`, 'info');
   console.log(`\n📚 [${subject.name}] (Class ID: ${subject.classId})`);
   const classUrl = `https://elms.sti.edu/student_class/show/${subject.classId}`;
   await page.goto(classUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -100,17 +102,20 @@ async function downloadSubjectHandouts(page, subject) {
 
         if (fs.existsSync(filePath) && fs.statSync(filePath).size > 0) {
           const sizeKb = (fs.statSync(filePath).size / 1024).toFixed(1);
+          telemetry.log(`Cached: ${fileName} (${sizeKb} KB)`, 'info');
           console.log(`     ⏩ Existing: ${fileName} (${sizeKb} KB)`);
           downloadedFiles.push({ file: fileName, status: 'cached', sizeKb });
           continue;
         }
 
+        telemetry.log(`Downloading: ${fileName}...`, 'step');
         console.log(`     ⬇️ Downloading: ${fileName}...`);
         const resp = await page.request.get(item.href, { timeout: 30000 });
         if (resp.ok()) {
           const buffer = await resp.body();
           fs.writeFileSync(filePath, buffer);
           const sizeKb = (buffer.length / 1024).toFixed(1);
+          telemetry.log(`Saved: ${fileName} (${sizeKb} KB)`, 'success');
           console.log(`     ✅ Saved: ${fileName} (${sizeKb} KB)`);
           downloadedFiles.push({ file: fileName, status: 'downloaded', sizeKb });
         }
@@ -172,10 +177,16 @@ export async function runElmsCli(customArgs = null) {
   }
 
   let totalCount = 0;
-  for (const subject of targetList) {
+  telemetry.startTask('elms-handouts', 'Sync Course Handouts', subjectArg || 'All Subjects', targetList.length);
+
+  for (let i = 0; i < targetList.length; i++) {
+    const subject = targetList[i];
+    telemetry.step(i + 1, targetList.length, `Downloading handouts: ${subject.name}`);
     const files = await downloadSubjectHandouts(page, subject);
     totalCount += files.length;
   }
+
+  telemetry.complete(`Processed ${targetList.length} subject(s) — Total: ${totalCount} handouts`);
 
   console.log("\n==========================================================");
   console.log(`🎉 Finished processing ${targetList.length} subject(s). Total handouts processed: ${totalCount}`);

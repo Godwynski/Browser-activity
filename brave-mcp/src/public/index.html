@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Command Center — Academic & Activity OS</title>
+  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Background Glow Accents -->
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <div class="app-layout">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="brand-logo">⚡</div>
+        <div class="brand-info">
+          <h1>ANTIGRAVITY MISSION CONTROL</h1>
+          <span class="brand-subtitle">Autonomous Academic & Browser Activity OS</span>
+        </div>
+      </div>
+
+      <div class="nav-center">
+        <div class="conn-pill" id="cdp-status-pill">
+          <span class="status-indicator online" id="cdp-dot"></span>
+          <span class="conn-label" id="cdp-label">Brave Port 9222 Active</span>
+        </div>
+        <div class="conn-pill" id="ws-status-pill">
+          <span class="status-indicator online" id="ws-dot"></span>
+          <span class="conn-label" id="ws-label">Live Telemetry Connected</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <button class="btn btn-secondary" id="btn-refresh-courses">↺ Refresh Courses</button>
+        <button class="btn btn-primary" id="btn-run-demo">⚡ Run Live Demo</button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Left Column: Courses & Task Matrix -->
+      <section class="left-col">
+        <!-- Active Mission Banner -->
+        <div class="mission-card" id="mission-banner">
+          <div class="mission-header">
+            <div class="mission-meta">
+              <span class="badge" id="banner-subject">STANDBY</span>
+              <span class="time-elapsed" id="banner-status-text">Ready for automation</span>
+            </div>
+            <span class="progress-percent" id="banner-percent">0%</span>
+          </div>
+          <h2 class="mission-title" id="banner-title">Idle — Waiting for Tasks</h2>
+          <p class="mission-step" id="banner-step">No script currently executing</p>
+          <div class="progress-track">
+            <div class="progress-fill" id="banner-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Course Matrix Header -->
+        <div class="section-title-bar">
+          <h3>📚 ENROLLED COURSES & LAB MODULES</h3>
+          <span class="section-desc">Single source of truth in <code>courses/</code></span>
+        </div>
+
+        <!-- Status & Filter Toolbar -->
+        <div class="audit-toolbar">
+          <div class="audit-badges">
+            <span class="audit-badge badge-unfinished" id="stat-unfinished">⏳ 0 Unfinished</span>
+            <span class="audit-badge badge-completed" id="stat-completed">✅ 0 Completed</span>
+            <span class="audit-badge badge-ignored" id="stat-ignored">👁️‍🗨️ 0 Ignored</span>
+          </div>
+          <div class="audit-controls">
+            <button class="filter-tab active" id="tab-all">All Tasks</button>
+            <button class="filter-tab" id="tab-unfinished">Unfinished Only</button>
+            <label class="toggle-ignored-label">
+              <input type="checkbox" id="check-show-ignored" checked>
+              <span>Show Ignored</span>
+            </label>
+            <button class="btn btn-secondary btn-audit" id="btn-audit-now">🔍 Audit Tasks</button>
+          </div>
+        </div>
+
+        <!-- Course Cards Container -->
+        <div class="courses-container" id="courses-list">
+          <div class="loading-state">Loading courses...</div>
+        </div>
+
+        <!-- STI ELMS Live Discovered Assignments -->
+        <div class="section-title-bar" style="margin-top: 20px;">
+          <div>
+            <h3>🎓 STI ELMS LIVE ASSIGNMENTS</h3>
+            <span class="section-desc">Discovered directly from your enrolled courses &amp; active tabs</span>
+          </div>
+          <button class="btn btn-primary" id="btn-scan-elms-live">🎓 Check ELMS Live</button>
+        </div>
+
+        <div class="courses-container" id="elms-assignments-list">
+          <div class="loading-state">Click "Check ELMS Live" to scan your enrolled courses on STI ELMS.</div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Terminal & Mission Telemetry -->
+      <aside class="right-col">
+        <!-- Live Console Terminal -->
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <span class="terminal-icon">&gt;_</span>
+              <span>LIVE TELEMETRY STREAM</span>
+            </div>
+            <div class="terminal-actions">
+              <button class="btn-icon-sm" id="btn-clear-terminal" title="Clear logs">Clear</button>
+            </div>
+          </div>
+          <div class="terminal-body" id="terminal-logs">
+            <div class="log-row info"><span class="time">00:00:00</span>[SYSTEM] Antigravity Telemetry Engine initialized.</div>
+            <div class="log-row success"><span class="time">00:00:00</span>[WS] Connected to ws://localhost:8765</div>
+          </div>
+        </div>
+
+        <!-- Quick Launch Utilities -->
+        <div class="utility-card">
+          <h4>🚀 QUICK ACTIONS & UTILITIES</h4>
+          <div class="quick-grid">
+            <button class="quick-action-btn primary" id="btn-action-cube">
+              <span class="icon">▶</span>
+              <div class="text">
+                <strong>Run 3D Cube</strong>
+                <span>Pygame &amp; OpenGL wireframe</span>
+              </div>
+            </button>
+
+            <button class="quick-action-btn" id="btn-action-handouts">
+              <span class="icon">📥</span>
+              <div class="text">
+                <strong>Sync Handouts</strong>
+                <span>Batch download from ELMS</span>
+              </div>
+            </button>
+
+            <button class="quick-action-btn" id="btn-open-elms">
+              <span class="icon">🎓</span>
+              <div class="text">
+                <strong>Open STI ELMS</strong>
+                <span>With floating Mission HUD</span>
+              </div>
+            </button>
+
+            <button class="quick-action-btn" id="btn-open-courses-folder">
+              <span class="icon">📁</span>
+              <div class="text">
+                <strong>Courses Folder</strong>
+                <span>Inspect clean files</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

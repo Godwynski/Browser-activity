@@ -2,7 +2,14 @@
 artifacts/
 downloads/
 temp/
+.tmp/
+scratch/
 *.log
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Legacy directories (prevent accidental re-creation at root)
 Handouts/
