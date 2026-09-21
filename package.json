@@ -1,0 +1,14 @@
+{
+  "name": "browser-activity",
+  "version": "2.0.0",
+  "description": "Antigravity Academic Command Center & STI ELMS Automation Workspace",
+  "type": "module",
+  "scripts": {
+    "audit": "node brave-mcp/scripts/cdp/audit-workspace.js",
+    "elms:list": "node brave-mcp/scripts/elms/list-assignments.js",
+    "elms:sync": "node brave-mcp/scripts/elms/sync-cache.js",
+    "lab:cube": "python courses/Computer_Graphics_Programming/assignments/midterm/03_Laboratory_Exercise_1/src/wireframe_cube.py",
+    "telemetry": "node brave-mcp/src/telemetry-server.js",
+    "test": "npm --prefix brave-mcp test"
+  }
+}

@@ -93,12 +93,79 @@ export class ElmsChecker {
       globalTelemetry.log(`Checking assignments in ${subject.name} (Class ID: ${subject.classId})`, 'info');
 
       try {
-        const classUrl = `https://elms.sti.edu/student_class/show/${subject.classId}`;
-        await page.goto(classUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await page.waitForTimeout(800);
+        // 1. Direct check: Full list of assignments for this subject
+        const listUrl = `https://elms.sti.edu/student_assignments/list/${subject.classId}`;
+        await page.goto(listUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.waitForTimeout(1200);
 
-        // First look for direct assignments tab / links
-        const items = await page.evaluate((subjName) => {
+        const currentUrl = page.url();
+        const items = [];
+
+        // Check if redirected to a single assignment
+        if (currentUrl.includes('/student_dropbox_assignment/show/') || 
+            currentUrl.includes('/student_assignment/show/') || 
+            currentUrl.includes('/student_quiz/show/')) {
+          const singleItem = await page.evaluate((subjName, url) => {
+            const h = document.querySelector('.page_title, #center h1, #center h2, h1, h2');
+            const title = h ? (h.innerText || '').trim() : document.title.replace(/\|.*$/, '').trim();
+            const text = document.body.innerText;
+            let status = 'Pending / Due';
+            if (text.includes('Submitted on') || text.includes('Submission status: Submitted') || text.includes('Graded')) {
+              status = 'Submitted';
+            } else {
+              status = '⏳ Due (Not Submitted)';
+            }
+            return { subject: subjName, title: title.replace(/\s+/g, ' '), url, status };
+          }, subject.name, currentUrl);
+
+          if (singleItem.title && singleItem.title.length > 2) {
+            items.push(singleItem);
+          }
+        }
+
+        // Parse all table rows and assignment cards from the list
+        const listItems = await page.evaluate((subjName) => {
+          const found = [];
+          const rows = Array.from(document.querySelectorAll('table tr, .assignment_row, .item_row, li.assignment, .item'));
+          
+          rows.forEach(r => {
+            if (r.querySelector('th') && !r.querySelector('td')) return;
+            const a = r.querySelector('a[href*="/student_dropbox_assignment/"], a[href*="/student_assignment/"], a[href*="/student_quiz/"], a[href*="/student_quiz_assignment/"], a[href*="/student_survey/"], a[href*="/assignment"]');
+            if (a) {
+              const text = (a.innerText || a.getAttribute('title') || '').trim();
+              const lower = text.toLowerCase();
+              if (text.length > 2 && lower !== 'assignment' && lower !== 'title' && !lower.includes('expand all') && !lower.includes('handout')) {
+                const rText = r.innerText || '';
+                let status = '⏳ Due (Not Submitted)';
+                if (/submitted|graded|completed|turned in/i.test(rText)) {
+                  status = 'Submitted';
+                } else if (/overdue|missing/i.test(rText)) {
+                  status = 'Overdue';
+                }
+                found.push({ subject: subjName, title: text.replace(/\s+/g, ' '), url: a.href, status });
+              }
+            }
+          });
+          return found;
+        }, subject.name);
+        items.push(...listItems);
+
+        // Also check due endpoint if list returned 0
+        if (items.length === 0) {
+          const dueUrl = `https://elms.sti.edu/student_assignments/due/${subject.classId}?redirect_if_one=true`;
+          await page.goto(dueUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+          await page.waitForTimeout(1000);
+        }
+
+        // 2. Also check standard class page if no due items found
+        if (items.length === 0) {
+          const classUrl = `https://elms.sti.edu/student_class/show/${subject.classId}`;
+          await page.goto(classUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+          await page.waitForTimeout(800);
+        }
+
+        // Collect any additional lesson or dropbox links
+        const classItems = await page.evaluate((subjName) => {
           const list = [];
           const links = Array.from(document.querySelectorAll('a'));
 
@@ -144,10 +211,20 @@ export class ElmsChecker {
             seen.add(item.url);
             return true;
           });
-        }, subject.name);
+        items.push(...classItems);
+
+        // Deduplicate all discovered items for this subject
+        const uniqueItems = [];
+        const seenUrls = new Set();
+        for (const it of items) {
+          if (!seenUrls.has(it.url)) {
+            seenUrls.add(it.url);
+            uniqueItems.push(it);
+          }
+        }
 
         // Check each discovered item against local workspace & ignored list
-        for (const item of items) {
+        for (const item of uniqueItems) {
           const courseFolder = subject.name.replace(/\s+/g, '_');
           const cleanName = item.title.replace(/[/\\?%*:|"<>]/g, '_').trim();
           const itemKey = `${courseFolder}:${cleanName}`;

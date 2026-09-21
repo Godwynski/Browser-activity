@@ -38,10 +38,11 @@ Browser activity/
 ---
 
 ## 🚫 Forbidden Practices (Zero Tolerance)
-1. **NO Root Dumps**: Never create root folders like `CGP_Midterm_Assignments/` or dump `.txt`, `.py`, `.pdf`, or `.md` files in the project root.
-2. **NO Mixed Folders**: Never mix raw extracted text (e.g., `extracted_pdf_text.txt`) or Python `__pycache__` with source code or deliverables.
-3. **NO Ad-Hoc Scripts in Root**: All scripts must be housed in `brave-mcp/scripts/<category>/` or within their respective skill directory.
-4. **NO Unstructured Assignments**: Every lab exercise, assignment, or performance task must have its own dedicated directory with `materials/`, `src/` (if code exists), and `answer.md`.
+1. **NO New Browser Instances**: Never launch a new browser process or separate profile (`AgentProfile`). The user's Brave browser is already open and connected. Always attach to existing sessions via CDP or extension WebSocket.
+2. **NO Root Dumps**: Never create root folders like `CGP_Midterm_Assignments/` or dump `.txt`, `.py`, `.pdf`, or `.md` files in the project root.
+3. **NO Mixed Folders**: Never mix raw extracted text (e.g., `extracted_pdf_text.txt`) or Python `__pycache__` with source code or deliverables.
+4. **NO Ad-Hoc Scripts in Root**: All scripts must be housed in `brave-mcp/scripts/<category>/` or within their respective skill directory.
+5. **NO Unstructured Assignments**: Every lab exercise, assignment, or performance task must have its own dedicated directory with `materials/`, `src/` (if code exists), and `answer.md`.
 
 ---
 

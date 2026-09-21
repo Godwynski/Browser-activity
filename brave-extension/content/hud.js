@@ -44,6 +44,9 @@
         </div>
       </div>
 
+      <!-- Detected Due Assignment on Current Page -->
+      <div id="ag-detected-container"></div>
+
       <div class="ag-task-card">
         <div class="ag-task-subject" id="ag-task-subject">GENERAL</div>
         <div class="ag-task-name" id="ag-task-name">Idle — Ready for Tasks</div>
@@ -350,12 +353,369 @@
     }
   });
 
-  document.getElementById('ag-action-run-code').addEventListener('click', () => {
-    appendLog('Triggering local lab code run...', 'step');
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'TRIGGER_TASK', payload: { action: 'run_code' } }));
+  // Class ID to Subject mapping
+  const CLASS_MAP = {
+    '5713354': 'Computer Graphics Programming',
+    '5713245': 'IT Service Management',
+    '5712641': 'Game Development',
+    '5713238': 'Information Assurance and Security',
+    '5713247': 'IT Capstone Project 2',
+    '5713246': 'Network Technology 2',
+    '5713244': 'Euthenics 2'
+  };
+
+  // Inspect the active ELMS page for due assignments / tasks
+  function inspectCurrentPage() {
+    const detectedContainer = document.getElementById('ag-detected-container');
+    if (!detectedContainer) return;
+
+    const url = window.location.href;
+    const path = window.location.pathname;
+
+    // Determine subject name
+    let subjectName = 'General';
+    for (const [cid, sname] of Object.entries(CLASS_MAP)) {
+      if (url.includes(cid)) {
+        subjectName = sname;
+        break;
+      }
     }
-  });
+    if (subjectName === 'General') {
+      const bc = document.querySelector('.breadcrumbs, .nav_class_title, .class_title, #page_title');
+      if (bc) {
+        const text = bc.innerText || '';
+        for (const sname of Object.values(CLASS_MAP)) {
+          if (text.includes(sname)) {
+            subjectName = sname;
+            break;
+          }
+        }
+      }
+    }
+
+    const isDropbox = path.includes('/student_dropbox_assignment/show/');
+    const isAssignment = path.includes('/student_assignment/show/');
+    const isQuiz = path.includes('/student_quiz/show/');
+    const isSingleTask = isDropbox || isAssignment || isQuiz;
+
+    // 1. Single Task View
+    if (isSingleTask) {
+      const hTitle = document.querySelector('.page_title, #center h1, #center h2, .main_content h1, h1, h2');
+      const detectedTitle = hTitle ? hTitle.innerText.trim() : document.title.replace(/\|.*$/, '').trim();
+      const pageText = document.body.innerText;
+
+      let detectedStatus = '⏳ Due (Not Submitted)';
+      let statusType = 'pending';
+      if (/submitted on|submission status:\s*submitted|graded|view submission/i.test(pageText)) {
+        detectedStatus = '✅ Submitted';
+        statusType = 'submitted';
+      } else if (/overdue|past due|missing/i.test(pageText)) {
+        detectedStatus = '🚨 Overdue';
+        statusType = 'overdue';
+      }
+
+      let detectedDue = '';
+      const dueMatch = pageText.match(/Due:?\s*([A-Za-z]{3}\s+\d{1,2},?\s+\d{4}(?:\s+at\s+\d{1,2}:\d{2}\s*[APMapm]{2})?|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+      if (dueMatch) detectedDue = dueMatch[0];
+
+      if (detectedTitle && detectedTitle.length > 2 && !detectedTitle.toLowerCase().includes('expand all') && !detectedTitle.toLowerCase().includes('handout')) {
+        const cleanTitle = detectedTitle.replace(/[/\\?%*:|"<>]/g, '_');
+        detectedContainer.innerHTML = `
+          <div class="ag-detected-box">
+            <div class="ag-detected-header">
+              <div class="ag-detected-label">🎯 ACTIVE ASSIGNMENT</div>
+              <span class="ag-status-pill ${statusType}">${escapeHtml(detectedStatus)}</span>
+            </div>
+            <div class="ag-assignment-title" style="font-size: 13px;">${escapeHtml(detectedTitle)}</div>
+            <div class="ag-assignment-due">${escapeHtml(subjectName)} ${detectedDue ? `• ${escapeHtml(detectedDue)}` : ''}</div>
+            <div class="ag-assignment-actions" style="margin-top: 6px;">
+              <button class="ag-mini-btn primary" id="ag-btn-ingest-single">⚡ Ingest to courses/</button>
+              <button class="ag-mini-btn" id="ag-btn-ignore-single">👁️‍🗨️ Ignore</button>
+            </div>
+          </div>
+        `;
+
+        pillStatus.innerText = `🎯 [Due: ${detectedTitle}]`;
+        if (statusType !== 'submitted') pillDot.className = 'ag-pulse-dot running';
+
+        document.getElementById('ag-btn-ingest-single')?.addEventListener('click', async () => {
+          appendLog(`Ingesting ${detectedTitle} into courses/${subjectName}/...`, 'step');
+          try {
+            const resp = await fetch('http://localhost:8765/api/elms/ingest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subject: subjectName, title: detectedTitle, url })
+            });
+            const res = await resp.json();
+            if (res.success) appendLog(`Scaffolded: ${res.path}`, 'success');
+          } catch (e) {
+            appendLog(`Ingest error: ${e.message}`, 'error');
+          }
+        });
+
+        document.getElementById('ag-btn-ignore-single')?.addEventListener('click', async () => {
+          appendLog(`Marking ${detectedTitle} as ignored...`, 'step');
+          try {
+            await fetch('http://localhost:8765/api/assignments/ignore', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ courseName: subjectName.replace(/ /g, '_'), assignmentName: cleanTitle, isIgnored: true })
+            });
+            appendLog(`Task ignored.`, 'info');
+            detectedContainer.innerHTML = '';
+          } catch (e) {
+            appendLog(`Ignore error: ${e.message}`, 'error');
+          }
+        });
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'SYNC_ELMS_DOM_ASSIGNMENTS',
+            payload: {
+              assignments: [{
+                subject: subjectName,
+                title: detectedTitle,
+                cleanName: cleanTitle,
+                url,
+                status: detectedStatus,
+                dueDate: detectedDue,
+                needsAction: statusType !== 'submitted'
+              }]
+            }
+          }));
+        }
+      }
+      return;
+    }
+
+    // 2. Multi-Assignment List / Table View (e.g. /student_assignments/list/:id or /due/:id)
+    const detected = [];
+    const seenUrls = new Set();
+
+    // Scan table rows and list items
+    const rows = Array.from(document.querySelectorAll('table tr, .assignment_row, .item_row, li.assignment, .item'));
+    for (const row of rows) {
+      if (row.querySelector('th') && !row.querySelector('td')) continue; // Skip header row
+
+      const link = row.querySelector('a[href*="/student_dropbox_assignment/"], a[href*="/student_assignment/"], a[href*="/student_quiz/"], a[href*="/student_quiz_assignment/"], a[href*="/student_survey/"], a[href*="/student_discussion/"], a[href*="/assignment"]');
+      if (!link) continue;
+
+      const title = (link.innerText || link.getAttribute('title') || '').trim();
+      const href = link.href || '';
+      const lower = title.toLowerCase();
+
+      if (!title || lower === 'assignment' || lower === 'title' || lower === 'name' || lower.includes('expand all') || lower.includes('handout') || title.length < 3) {
+        continue;
+      }
+      if (seenUrls.has(href)) continue;
+      seenUrls.add(href);
+
+      const rowText = row.innerText || '';
+      let status = '⏳ Due (Not Submitted)';
+      let statusType = 'pending';
+      if (/submitted|graded|completed|turned in/i.test(rowText)) {
+        status = '✅ Submitted';
+        statusType = 'submitted';
+      } else if (/overdue|missing|past due|late/i.test(rowText)) {
+        status = '🚨 Overdue';
+        statusType = 'overdue';
+      }
+
+      let dueDate = '';
+      const dateMatch = rowText.match(/(?:Due:?\s*)?([A-Za-z]{3}\s+\d{1,2},?\s+\d{4}(?:\s+at\s+\d{1,2}:\d{2}\s*[APMapm]{2})?|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+      if (dateMatch) dueDate = dateMatch[0];
+
+      detected.push({
+        subject: subjectName,
+        title,
+        cleanName: title.replace(/[/\\?%*:|"<>]/g, '_'),
+        url: href,
+        status,
+        statusType,
+        dueDate,
+        needsAction: statusType !== 'submitted'
+      });
+    }
+
+    // Fallback: If table rows didn't match, scan all valid assignment links in main content
+    if (detected.length === 0) {
+      const links = Array.from(document.querySelectorAll('#center a, #main a, .content a, table a'));
+      for (const a of links) {
+        const href = a.href || '';
+        const title = (a.innerText || a.getAttribute('title') || '').trim();
+        const lower = title.toLowerCase();
+
+        const isTaskLink = href.includes('/student_dropbox_assignment/show/') ||
+                           href.includes('/student_assignment/show/') ||
+                           href.includes('/student_quiz/show/') ||
+                           href.includes('/student_quiz_assignment/show/') ||
+                           lower.includes('activity') || lower.includes('laboratory') ||
+                           lower.includes('performance task') || lower.includes('assignment');
+
+        if (isTaskLink && title.length > 3 && !seenUrls.has(href) && !lower.includes('expand all') && !lower.includes('handout')) {
+          seenUrls.add(href);
+          const parent = a.closest('tr, li, .item, .card, div') || a.parentElement;
+          const parentText = parent ? parent.innerText : '';
+
+          let status = '⏳ Due (Not Submitted)';
+          let statusType = 'pending';
+          if (/submitted|graded|completed/i.test(parentText)) {
+            status = '✅ Submitted';
+            statusType = 'submitted';
+          } else if (/overdue|missing/i.test(parentText)) {
+            status = '🚨 Overdue';
+            statusType = 'overdue';
+          }
+
+          let dueDate = '';
+          const dMatch = parentText.match(/(?:Due:?\s*)?([A-Za-z]{3}\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+          if (dMatch) dueDate = dMatch[0];
+
+          detected.push({
+            subject: subjectName,
+            title,
+            cleanName: title.replace(/[/\\?%*:|"<>]/g, '_'),
+            url: href,
+            status,
+            statusType,
+            dueDate,
+            needsAction: statusType !== 'submitted'
+          });
+        }
+      }
+    }
+
+    if (detected.length > 0) {
+      const pendingItems = detected.filter(d => d.needsAction);
+      const pendingCount = pendingItems.length;
+
+      let listHtml = '';
+      detected.forEach((item, idx) => {
+        listHtml += `
+          <div class="ag-assignment-card" data-idx="${idx}">
+            <div class="ag-assignment-top">
+              <span class="ag-assignment-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>
+              <span class="ag-status-pill ${item.statusType}">${escapeHtml(item.status)}</span>
+            </div>
+            <div class="ag-assignment-bottom">
+              <span class="ag-assignment-due">${escapeHtml(item.dueDate || 'No due date set')}</span>
+              <div class="ag-assignment-actions">
+                <button class="ag-mini-btn primary ag-btn-item-ingest" data-idx="${idx}">⚡ Ingest</button>
+                <button class="ag-mini-btn ag-btn-item-ignore" data-idx="${idx}">👁️‍🗨️</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      let batchHtml = '';
+      if (pendingCount > 0) {
+        batchHtml = `
+          <div class="ag-detected-batch">
+            <button class="ag-btn ag-btn-primary" id="ag-btn-ingest-all" style="width: 100%; font-size: 11px;">
+              ⚡ Ingest All ${pendingCount} Pending to courses/
+            </button>
+          </div>
+        `;
+      }
+
+      detectedContainer.innerHTML = `
+        <div class="ag-detected-box">
+          <div class="ag-detected-header">
+            <div class="ag-detected-label">📋 ${detected.length} ASSIGNMENT(S) — ${escapeHtml(subjectName.toUpperCase())}</div>
+            <span class="ag-detected-badge">${pendingCount} Pending</span>
+          </div>
+          <div class="ag-detected-list">
+            ${listHtml}
+          </div>
+          ${batchHtml}
+        </div>
+      `;
+
+      pillStatus.innerText = pendingCount > 0 ? `🎯 [${pendingCount} Pending: ${subjectName}]` : `✅ [All Submitted]`;
+      if (pendingCount > 0) pillDot.className = 'ag-pulse-dot running';
+
+      // Attach individual ingest listeners
+      detectedContainer.querySelectorAll('.ag-btn-item-ingest').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const idx = parseInt(e.target.getAttribute('data-idx'), 10);
+          const item = detected[idx];
+          if (!item) return;
+          appendLog(`Ingesting ${item.title}...`, 'step');
+          try {
+            const resp = await fetch('http://localhost:8765/api/elms/ingest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subject: item.subject, title: item.title, url: item.url })
+            });
+            const res = await resp.json();
+            if (res.success) appendLog(`Scaffolded: ${res.path}`, 'success');
+          } catch (err) {
+            appendLog(`Ingest error: ${err.message}`, 'error');
+          }
+        });
+      });
+
+      // Attach individual ignore listeners
+      detectedContainer.querySelectorAll('.ag-btn-item-ignore').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const idx = parseInt(e.target.getAttribute('data-idx'), 10);
+          const item = detected[idx];
+          if (!item) return;
+          appendLog(`Ignoring ${item.title}...`, 'step');
+          try {
+            await fetch('http://localhost:8765/api/assignments/ignore', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ courseName: item.subject.replace(/ /g, '_'), assignmentName: item.cleanName, isIgnored: true })
+            });
+            appendLog(`Marked as ignored.`, 'info');
+            btn.closest('.ag-assignment-card').style.opacity = '0.4';
+          } catch (err) {
+            appendLog(`Ignore error: ${err.message}`, 'error');
+          }
+        });
+      });
+
+      // Attach Batch Ingest All listener
+      document.getElementById('ag-btn-ingest-all')?.addEventListener('click', async () => {
+        appendLog(`Batch ingesting all ${pendingCount} pending assignment(s)...`, 'step');
+        for (const item of pendingItems) {
+          try {
+            appendLog(`Scaffolding ${item.title}...`, 'info');
+            await fetch('http://localhost:8765/api/elms/ingest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subject: item.subject, title: item.title, url: item.url })
+            });
+          } catch (err) {
+            appendLog(`Error ingesting ${item.title}: ${err.message}`, 'error');
+          }
+        }
+        appendLog(`Batch ingest completed for ${subjectName}!`, 'success');
+      });
+
+      // Sync with telemetry server
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'SYNC_ELMS_DOM_ASSIGNMENTS',
+          payload: { assignments: detected }
+        }));
+      }
+    }
+  }
+
+  // Run initial inspection after page load
+  setTimeout(inspectCurrentPage, 1000);
+
+  // Re-inspect if single-page navigation or DOM changes happen
+  let lastHref = window.location.href;
+  setInterval(() => {
+    if (window.location.href !== lastHref) {
+      lastHref = window.location.href;
+      setTimeout(inspectCurrentPage, 800);
+    }
+  }, 1500);
 
   console.log('⚡ Antigravity STI ELMS Mission Control HUD loaded.');
 })();

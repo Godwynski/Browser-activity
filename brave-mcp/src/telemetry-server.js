@@ -299,7 +299,9 @@ export class TelemetryServer {
         // 4. Action: Check Unfinished Assignments
         if (url.pathname === '/api/actions/check-unfinished' && req.method === 'POST') {
           const scan = this.scanCourses();
+          const ignoredSet = this.getIgnoredList();
           const unfinished = [];
+
           for (const c of scan.courses) {
             for (const a of c.assignments) {
               if (a.status === 'UNFINISHED') {
@@ -308,17 +310,52 @@ export class TelemetryServer {
             }
           }
 
-          this.startTask('audit-unfinished', 'Check Unfinished Tasks', 'Workspace Audit', 3);
-          this.step(1, 3, 'Scanning course directories & rubrics...');
-          this.log(`Found ${scan.summary.total} total assignments across enrolled courses.`, 'info');
+          // Also check ELMS live cached assignments
+          const elmsCacheFile = path.join(WORKSPACE_ROOT, 'artifacts', 'elms_assignments_cache.json');
+          if (fs.existsSync(elmsCacheFile)) {
+            try {
+              const elmsData = JSON.parse(fs.readFileSync(elmsCacheFile, 'utf8'));
+              const list = Array.isArray(elmsData.assignments) ? elmsData.assignments : [];
+              for (const item of list) {
+                const courseFolder = (item.subject || 'General').replace(/\s+/g, '_');
+                const cleanName = (item.cleanName || item.title || '').replace(/[/\\?%*:|"<>]/g, '_').trim();
+                const itemKey = `${courseFolder}:${cleanName}`;
+
+                if (ignoredSet.has(itemKey)) continue;
+
+                // Check if already covered by local courses scan
+                const alreadyTracked = unfinished.some(u => u.name === cleanName || u.name === item.title);
+                if (alreadyTracked) continue;
+
+                // Check local deliverable
+                const localDir = path.join(COURSES_DIR, courseFolder, 'assignments', 'midterm', cleanName);
+                const answerPath = path.join(localDir, 'answer.md');
+                const isLocalDone = fs.existsSync(answerPath) && fs.statSync(answerPath).size > 50;
+
+                const isSubmittedOnElms = /submitted|graded|completed/i.test(item.status || '');
+
+                if (!isLocalDone && !isSubmittedOnElms) {
+                  unfinished.push({
+                    course: item.subject || 'General',
+                    name: item.title,
+                    missing: `Pending on ELMS (${item.status || 'Due'})`
+                  });
+                }
+              }
+            } catch (_) {}
+          }
+
+          this.startTask('audit-unfinished', 'Check Unfinished Tasks', 'Academic Audit', 3);
+          this.step(1, 3, 'Scanning course directories & ELMS cache...');
+          this.log(`Audited local workspace & ELMS assignments.`, 'info');
 
           setTimeout(() => {
-            this.step(2, 3, `Analyzing completeness (${scan.summary.unfinished} pending, ${scan.summary.ignored} ignored)...`);
+            this.step(2, 3, `Analyzing completeness (${unfinished.length} pending, ${ignoredSet.size} ignored)...`);
             if (unfinished.length === 0) {
               this.log('🎉 Outstanding! All tracked assignments are fully completed.', 'success');
             } else {
               unfinished.forEach(u => {
-                this.log(`⏳ [${u.course}] ${u.name} — Missing: ${u.missing}`, 'step');
+                this.log(`⏳ [${u.course}] ${u.name} — ${u.missing}`, 'step');
               });
             }
 
@@ -332,7 +369,7 @@ export class TelemetryServer {
           }, 600);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, unfinished, summary: scan.summary }));
+          res.end(JSON.stringify({ success: true, unfinished, summary: { ...scan.summary, unfinished: unfinished.length } }));
           return;
         }
 
@@ -465,6 +502,26 @@ export class TelemetryServer {
 
       this.server.listen(this.port, () => {
         console.error(`📡 [Telemetry] Real-time HUD server listening on ws://localhost:${this.port}`);
+
+        // Auto-hot-reload file watcher for extension files
+        const extDir = path.join(WORKSPACE_ROOT, 'brave-extension');
+        if (fs.existsSync(extDir)) {
+          let reloadTimer = null;
+          try {
+            fs.watch(extDir, { recursive: true }, (eventType, filename) => {
+              if (filename && !filename.includes('node_modules') && !filename.endsWith('.tmp')) {
+                if (reloadTimer) clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(() => {
+                  console.error(`⚡ [Telemetry] Change detected in brave-extension/${filename}. Broadcasting hot-reload...`);
+                  this.broadcast('HOT_RELOAD_EXTENSION', { file: filename });
+                }, 300);
+              }
+            });
+          } catch (e) {
+            console.error('[Telemetry] Could not start extension file watcher:', e.message);
+          }
+        }
+
         resolve();
       });
 

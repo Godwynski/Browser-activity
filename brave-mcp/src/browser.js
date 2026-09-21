@@ -77,55 +77,17 @@ export class BraveManager {
       this.agentPage = null;
     }
 
-    // 1. Try connecting to already running Brave over CDP
+    // Connect strictly to already running Brave over CDP
     try {
-      this.browser = await chromium.connectOverCDP(this.cdpUrl, { timeout: 2500 });
+      this.browser = await chromium.connectOverCDP(this.cdpUrl, { timeout: 4000 });
       await this._enforceBrowserDownloadBehavior(this.browser);
       return this.browser;
-    } catch (e) {
-      // CDP not listening yet, proceed to auto-launch
-    }
-
-    // 2. Auto-launch Brave with user profile
-    const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local');
-    let braveExe = path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe');
-    if (!fs.existsSync(braveExe)) {
-      const alt1 = 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe';
-      const alt2 = 'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe';
-      if (fs.existsSync(alt1)) braveExe = alt1;
-      else if (fs.existsSync(alt2)) braveExe = alt2;
-    }
-    const userData = path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'User Data');
-
-    try {
-      this.context = await chromium.launchPersistentContext(userData, {
-        executablePath: braveExe,
-        headless: false,
-        downloadsPath: PATHS.downloadsRaw,
-        acceptDownloads: true,
-        args: ['--remote-debugging-port=9222', '--remote-allow-origins=*']
-      });
-      return this.context;
     } catch (err) {
-      // If primary profile is locked, fall back to AgentProfile
-      const agentUserData = path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'AgentProfile');
-      try {
-        this.context = await chromium.launchPersistentContext(agentUserData, {
-          executablePath: braveExe,
-          headless: false,
-          downloadsPath: PATHS.downloadsRaw,
-          acceptDownloads: true,
-          args: ['--remote-debugging-port=9222', '--remote-allow-origins=*']
-        });
-        return this.context;
-      } catch (err2) {
-        throw new Error(
-          `Could not connect to or auto-launch Brave on ${this.cdpUrl}.\n` +
-          `Ensure Brave is running with '--remote-debugging-port=9222'.\n` +
-          `You can start it with: brave-launcher\\launch-brave.cmd\n` +
-          `Details: ${err.message}`
-        );
-      }
+      throw new Error(
+        `Could not connect to existing Brave browser on ${this.cdpUrl}.\n` +
+        `Ensure your connected Brave browser is running with '--remote-debugging-port=9222'.\n` +
+        `Antigravity will NOT spawn duplicate instances or separate profile windows.`
+      );
     }
   }
 

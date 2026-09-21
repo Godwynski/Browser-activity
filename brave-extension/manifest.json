@@ -7,6 +7,9 @@
     "default_popup": "popup/popup.html",
     "default_title": "Antigravity Mission Control"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "permissions": [
     "storage",
     "activeTab"

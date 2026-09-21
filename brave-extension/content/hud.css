@@ -302,3 +302,172 @@
   border-color: rgba(56, 189, 248, 0.7);
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
+
+/* Detected Due Assignment Banner */
+.ag-detected-box {
+  margin: 10px 16px 4px 16px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(56, 189, 248, 0.12) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ag-detected-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ag-detected-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--ag-warning);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ag-detected-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-weight: 700;
+}
+
+.ag-detected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ag-detected-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ag-detected-list::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 2px;
+}
+
+.ag-assignment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.ag-assignment-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.ag-assignment-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ag-assignment-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.ag-status-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.ag-status-pill.pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ag-status-pill.overdue {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ag-status-pill.submitted {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ag-assignment-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ag-assignment-due {
+  font-size: 10px;
+  color: var(--ag-text-muted);
+}
+
+.ag-assignment-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.ag-mini-btn {
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--ag-text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ag-mini-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.ag-mini-btn.primary {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.ag-mini-btn.primary:hover {
+  background: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+}
+
+.ag-detected-batch {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
