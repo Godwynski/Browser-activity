@@ -193,8 +193,8 @@
                 </div>
               </div>
               <div class="module-actions">
-                ${a.hasCode ? `<button class="btn-sm" onclick="runLab('${escapeHtml(course.name)}', '${escapeHtml(a.name)}')">▶ Run Code</button>` : ''}
-                <button class="btn-ignore-toggle ${a.isIgnored ? 'ignored' : ''}" onclick="toggleIgnore('${escapeHtml(course.name)}', '${escapeHtml(a.name)}', ${!a.isIgnored})">
+                ${a.hasCode ? `<button class="btn-sm btn-action-run-lab" data-course="${escapeHtml(course.name)}" data-assignment="${escapeHtml(a.name)}">▶ Run Code</button>` : ''}
+                <button class="btn-ignore-toggle ${a.isIgnored ? 'ignored' : ''}" data-course="${escapeHtml(course.name)}" data-assignment="${escapeHtml(a.name)}" data-ignore="${!a.isIgnored}">
                   ${a.isIgnored ? '↩ Unignore' : '👁️‍🗨️ Ignore'}
                 </button>
               </div>
@@ -225,6 +225,25 @@
       coursesList.innerHTML = `<div class="loading-state">✨ All caught up! No ${activeFilter === 'unfinished' ? 'unfinished' : ''} assignments found.</div>`;
     }
   }
+
+  // Event delegation for module action buttons
+  coursesList.addEventListener('click', (e) => {
+    const runBtn = e.target.closest('.btn-action-run-lab');
+    if (runBtn) {
+      const course = runBtn.getAttribute('data-course');
+      const assignment = runBtn.getAttribute('data-assignment');
+      window.runLab(course, assignment);
+      return;
+    }
+    const ignoreBtn = e.target.closest('.btn-ignore-toggle');
+    if (ignoreBtn) {
+      const course = ignoreBtn.getAttribute('data-course');
+      const assignment = ignoreBtn.getAttribute('data-assignment');
+      const shouldIgnore = ignoreBtn.getAttribute('data-ignore') === 'true';
+      window.toggleIgnore(course, assignment, shouldIgnore);
+      return;
+    }
+  });
 
   // Action: Toggle Ignore
   window.toggleIgnore = async function(courseName, assignmentName, shouldIgnore) {

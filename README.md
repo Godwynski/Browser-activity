@@ -145,20 +145,33 @@ c:/Users/Godwyn/Documents/Projects/Browser activity/
 │   ├── test-runs/                 # Automated test logs & execution outputs
 │   ├── screenshots/               # Visual observation screenshots & action receipts
 │   └── temp/                      # Ephemeral scratch fixtures (cleaned up per run)
+├── brave-extension/
+│   ├── manifest.json              # Chrome/Brave Manifest V3 extension definition
+│   ├── background.js              # Service worker hot-reloader
+│   ├── popup/                     # Mission Control popup UI & trigger actions
+│   ├── content/                   # Floating in-page Mission Control HUD & auto-assignment scanner
+│   └── elms-antigravity-hud.user.js # Standalone Tampermonkey/Violentmonkey script bundle
 ├── brave-launcher/
 │   ├── launch-brave.ps1           # Starts Brave with CDP port 9222 and user profile
-│   └── launch-brave.cmd           # Double-click batch launcher
+│   ├── launch-brave.cmd           # Double-click batch launcher
+│   └── create-connected-shortcut.ps1 # Permanent desktop shortcut generator
 ├── brave-mcp/
-│   ├── package.json               # Dependencies: @modelcontextprotocol/sdk, playwright-core
+│   ├── package.json               # Dependencies: @modelcontextprotocol/sdk, playwright-core, ws
 │   ├── run-mcp.cmd                # Wrapper used by Antigravity MCP config to launch the server
 │   ├── scripts/
-│   │   └── download-handouts.js   # Fast batch downloader with CLI argument support
+│   │   ├── cdp/                   # CDP diagnostic & status inspection scripts
+│   │   ├── elms/                  # ELMS automation, sync, and download-handouts.js
+│   │   ├── gdrive/                # Google Drive organization & batch move automation
+│   │   └── social/                # Social media automation scripts
 │   ├── src/
 │   │   ├── paths.js               # Centralized workspace path resolver & directory isolation
 │   │   ├── browser.js             # Playwright CDP connection manager & download enforcement
 │   │   ├── observer.js            # Tri-source observer (Compact text + Scoping + Filters)
 │   │   ├── actions.js             # Direct action engine & multi-tier locators
 │   │   ├── verifier.js            # State diffing & Action Receipt generator
+│   │   ├── elms-checker.js        # Background assignment scraper & local status tracker
+│   │   ├── telemetry-server.js    # Mission Control WebSocket & HTTP daemon
+│   │   ├── telemetry.js           # Lightweight telemetry logging client
 │   │   └── index.js               # MCP stdio server (6 core tools)
 │   └── test/
 │       ├── test-connection.js     # Live CDP diagnostic test

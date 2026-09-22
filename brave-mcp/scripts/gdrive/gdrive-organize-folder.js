@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function moveItems(page, targetFolderName) {
   // Check if any gridcell exists

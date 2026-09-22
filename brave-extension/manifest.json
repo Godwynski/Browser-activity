@@ -12,12 +12,24 @@
   },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://elms.sti.edu/*",
     "http://localhost:8765/*"
   ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "commands": {
+    "toggle-hud": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Toggle Antigravity Mission Control HUD on current page"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://elms.sti.edu/*"],

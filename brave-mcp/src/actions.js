@@ -120,7 +120,18 @@ export class ActionEngine {
         if (text === undefined) throw new Error("Parameter 'text' is required for action 'type'.");
         const refItem = this.observer.resolveRef(ref, obs_id);
         const locator = this.getLocatorForRef(page, refItem);
-        await locator.fill(text, { timeout: 6000 });
+        if (params.humanLike) {
+          await locator.click({ timeout: 4000 });
+          await page.keyboard.type(text, { delay: 25 });
+        } else {
+          try {
+            await locator.fill(text, { timeout: 6000 });
+          } catch (fillErr) {
+            // Fallback for custom or contenteditable elements
+            await locator.click({ timeout: 4000 });
+            await page.keyboard.type(text, { delay: 15 });
+          }
+        }
         if (pressEnter) {
           await locator.press('Enter');
         }
@@ -164,7 +175,15 @@ export class ActionEngine {
         if (!value) throw new Error("Parameter 'value' is required for action 'select_option'.");
         const refItem = this.observer.resolveRef(ref, obs_id);
         const locator = this.getLocatorForRef(page, refItem);
-        await locator.selectOption(value, { timeout: 5000 });
+        try {
+          await locator.selectOption(value, { timeout: 5000 });
+        } catch (selErr) {
+          // Fallback for custom ARIA combobox / dropdown: click dropdown then click option text
+          await locator.click({ timeout: 4000 });
+          await page.waitForTimeout(200);
+          const optionLocator = page.locator(`[role="option"]:has-text("${value}"), li:has-text("${value}"), div:has-text("${value}")`).first();
+          await optionLocator.click({ timeout: 4000 });
+        }
         elementChange = `Selected option "${value}" on ${refItem.role || 'select'} "${refItem.name || ref}"`;
         break;
       }

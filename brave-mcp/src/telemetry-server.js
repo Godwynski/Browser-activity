@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +12,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const WORKSPACE_ROOT = path.resolve(__dirname, '../../');
 const COURSES_DIR = path.join(WORKSPACE_ROOT, 'courses');
 const IGNORED_FILE = path.join(COURSES_DIR, 'ignored_assignments.json');
+const SESSION_TOKEN_PATH = path.join(WORKSPACE_ROOT, 'artifacts', 'session_token.key');
 
 export class TelemetryServer {
   constructor(port = 8765) {
@@ -18,6 +20,8 @@ export class TelemetryServer {
     this.server = null;
     this.wss = null;
     this.clients = new Set();
+    this.tasks = new Map();
+    this.directives = [];
     this.currentTask = {
       id: null,
       name: 'Idle',
@@ -30,6 +34,19 @@ export class TelemetryServer {
       logs: []
     };
     this.actionHandlers = new Map();
+
+    // Ephemeral localhost session token for authenticated operations
+    try {
+      const artifactsDir = path.join(WORKSPACE_ROOT, 'artifacts');
+      if (!fs.existsSync(artifactsDir)) fs.mkdirSync(artifactsDir, { recursive: true });
+      if (!fs.existsSync(SESSION_TOKEN_PATH)) {
+        const token = crypto.randomBytes(24).toString('hex');
+        fs.writeFileSync(SESSION_TOKEN_PATH, token, 'utf8');
+      }
+      this.sessionToken = fs.readFileSync(SESSION_TOKEN_PATH, 'utf8').trim();
+    } catch (_) {
+      this.sessionToken = 'ag_local_dev_token';
+    }
   }
 
   getIgnoredList() {
@@ -201,6 +218,33 @@ export class TelemetryServer {
           return;
         }
 
+        // 1b. Directives API (from In-HUD Prompt Bar)
+        if (url.pathname === '/api/directives/submit' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { prompt, url: pageUrl, title } = JSON.parse(body);
+              if (!prompt) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Prompt is required' }));
+                return;
+              }
+              const directiveId = `dir_${Date.now()}`;
+              const entry = { id: directiveId, prompt, url: pageUrl, title, timestamp: new Date().toISOString() };
+              this.directives.push(entry);
+              this.log(`📩 [HUD Directive] "${prompt}"`, 'step');
+              this.broadcast('DIRECTIVE_RECEIVED', entry);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, id: directiveId, message: 'Directive queued for Antigravity' }));
+            } catch (err) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
         // 2. Courses & Assignment Status API
         if (url.pathname === '/api/courses' && req.method === 'GET') {
           try {
@@ -248,10 +292,22 @@ export class TelemetryServer {
           req.on('data', chunk => { body += chunk; });
           req.on('end', () => {
             try {
-              const { subject, title, url: targetUrl } = JSON.parse(body);
-              const courseFolder = subject.replace(/ /g, '_');
-              const cleanTitle = title.replace(/[/\\?%*:|"<>]/g, '_');
-              const subjDir = path.join(COURSES_DIR, courseFolder, 'assignments', 'midterm', cleanTitle);
+              const { subject, title, url: targetUrl, term = 'midterm' } = JSON.parse(body);
+              if (!subject || !title || /internet explorer|unsupported browser/i.test(title)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid or ignored assignment title' }));
+                return;
+              }
+              const courseFolder = path.basename(subject.replace(/\s+/g, '_'));
+              const cleanTitle = path.basename(title.replace(/[/\\?%*:|"<>]/g, '_').trim());
+              const cleanTerm = path.basename(term.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'midterm');
+              const subjDir = path.join(COURSES_DIR, courseFolder, 'assignments', cleanTerm, cleanTitle);
+
+              if (!path.resolve(subjDir).startsWith(path.resolve(COURSES_DIR))) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Forbidden path' }));
+                return;
+              }
               
               fs.mkdirSync(path.join(subjDir, 'materials'), { recursive: true });
               fs.mkdirSync(path.join(subjDir, 'src'), { recursive: true });
@@ -259,12 +315,12 @@ export class TelemetryServer {
 
               const answerFile = path.join(subjDir, 'answer.md');
               if (!fs.existsSync(answerFile)) {
-                fs.writeFileSync(answerFile, `# ${title}\n\n**Course**: ${subject}\n**Status**: In Progress\n**Source URL**: ${targetUrl || 'STI ELMS'}\n\n## Deliverable Content\n\n*(Work in progress)*\n`, 'utf8');
+                fs.writeFileSync(answerFile, `# ${title}\n\n**Course**: ${subject}\n**Term**: ${cleanTerm}\n**Status**: In Progress\n**Source URL**: ${targetUrl || 'STI ELMS'}\n\n## Deliverable Content\n\n*(Work in progress)*\n`, 'utf8');
               }
 
-              this.log(`Ingested ${title} into courses/${courseFolder}/assignments/midterm/${cleanTitle}`, 'success');
+              this.log(`Ingested ${title} into courses/${courseFolder}/assignments/${cleanTerm}/${cleanTitle}`, 'success');
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true, path: subjDir }));
+              res.end(JSON.stringify({ success: true, path: subjDir, term: cleanTerm }));
             } catch (err) {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: err.message }));
@@ -327,10 +383,18 @@ export class TelemetryServer {
                 const alreadyTracked = unfinished.some(u => u.name === cleanName || u.name === item.title);
                 if (alreadyTracked) continue;
 
-                // Check local deliverable
-                const localDir = path.join(COURSES_DIR, courseFolder, 'assignments', 'midterm', cleanName);
-                const answerPath = path.join(localDir, 'answer.md');
-                const isLocalDone = fs.existsSync(answerPath) && fs.statSync(answerPath).size > 50;
+                // Check local deliverable across any term
+                let isLocalDone = false;
+                const assignDir = path.join(COURSES_DIR, courseFolder, 'assignments');
+                if (fs.existsSync(assignDir)) {
+                  for (const t of fs.readdirSync(assignDir, { withFileTypes: true }).filter(d => d.isDirectory())) {
+                    const ans = path.join(assignDir, t.name, cleanName, 'answer.md');
+                    if (fs.existsSync(ans) && fs.statSync(ans).size > 50) {
+                      isLocalDone = true;
+                      break;
+                    }
+                  }
+                }
 
                 const isSubmittedOnElms = /submitted|graded|completed/i.test(item.status || '');
 
@@ -401,15 +465,29 @@ export class TelemetryServer {
             try {
               if (body) {
                 const parsed = JSON.parse(body);
-                if (parsed.courseName) courseName = parsed.courseName;
-                if (parsed.assignmentName) assignmentName = parsed.assignmentName;
+                if (parsed.courseName) courseName = path.basename(parsed.courseName);
+                if (parsed.assignmentName) assignmentName = path.basename(parsed.assignmentName);
               }
             } catch (_) {}
 
-            const pyScript = path.join(COURSES_DIR, courseName, 'assignments', 'midterm', assignmentName, 'src', 'wireframe_cube.py');
+            const srcDir = path.join(COURSES_DIR, courseName, 'assignments', 'midterm', assignmentName, 'src');
+            if (!path.resolve(srcDir).startsWith(path.resolve(COURSES_DIR))) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: 'Forbidden path' }));
+              return;
+            }
+
+            let pyScript = path.join(srcDir, 'wireframe_cube.py');
+            if (!fs.existsSync(pyScript) && fs.existsSync(srcDir)) {
+              const pyFiles = fs.readdirSync(srcDir).filter(f => f.endsWith('.py'));
+              if (pyFiles.length > 0) {
+                pyScript = path.join(srcDir, pyFiles[0]);
+              }
+            }
+
             if (!fs.existsSync(pyScript)) {
               res.writeHead(404, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: false, error: `Script not found at: ${pyScript}` }));
+              res.end(JSON.stringify({ success: false, error: `Script not found in: ${srcDir}` }));
               return;
             }
 
@@ -419,17 +497,33 @@ export class TelemetryServer {
 
             const child = spawn('python', [pyScript], {
               cwd: path.dirname(pyScript),
-              detached: true,
-              stdio: 'ignore'
+              detached: false
             });
-            child.unref();
 
-            this.step(2, 2, 'Interactive window active on screen');
-            this.log('Pygame window opened on desktop', 'success');
-            this.complete('Application running smoothly');
+            child.stdout?.on('data', (d) => {
+              this.log(`[Pygame stdout] ${d.toString().trim()}`, 'info');
+            });
+
+            child.stderr?.on('data', (d) => {
+              this.log(`[Pygame stderr] ${d.toString().trim()}`, 'error');
+            });
+
+            child.on('error', (err) => {
+              this.error(`Pygame failed to start: ${err.message}`);
+            });
+
+            child.on('close', (code) => {
+              if (code !== 0 && code !== null) {
+                this.error(`Pygame process exited with code ${code}`);
+              }
+            });
+
+            this.step(2, 2, 'Interactive window active on desktop');
+            this.log('Pygame window opened on desktop with live telemetry streaming', 'success');
+            this.complete('Pygame process launched successfully');
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'Process started' }));
+            res.end(JSON.stringify({ success: true, message: 'Process started with live streaming' }));
           });
           return;
         }
@@ -445,19 +539,52 @@ export class TelemetryServer {
         // 8. Action: Sync Handouts
         if (url.pathname === '/api/actions/sync-handouts' && req.method === 'POST') {
           const cliScript = path.join(WORKSPACE_ROOT, '.agents/skills/sti-elms/scripts/elms-cli.js');
+          this.startTask('sync-handouts', 'Sync ELMS Handouts', 'Academic Sync', 3);
+          this.step(1, 3, 'Spawning ELMS Handout Sync CLI...');
+          this.log('Connecting to Brave Agent Window to download handouts...', 'info');
+
           const child = spawn('node', [cliScript, '--all'], {
             cwd: WORKSPACE_ROOT,
-            detached: true,
-            stdio: 'ignore'
+            detached: false
           });
-          child.unref();
+
+          child.stdout?.on('data', (d) => {
+            const lines = d.toString().split('\n').map(l => l.trim()).filter(Boolean);
+            lines.forEach(l => this.log(l, 'step'));
+          });
+
+          child.stderr?.on('data', (d) => {
+            this.log(d.toString().trim(), 'error');
+          });
+
+          child.on('error', (err) => {
+            this.error(`Failed to launch Handout CLI: ${err.message}`);
+          });
+
+          child.on('close', (code) => {
+            if (code === 0) {
+              this.complete('ELMS Handouts synced successfully into artifacts/downloads/elms/!');
+            } else {
+              this.error(`Handout sync process finished with code ${code}`);
+            }
+          });
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'ELMS handout sync dispatched in background' }));
+          res.end(JSON.stringify({ success: true, message: 'ELMS handout sync dispatched with live streaming' }));
           return;
         }
 
         // 9. Static Dashboard Files Serving
-        let filePath = path.join(PUBLIC_DIR, url.pathname === '/' || url.pathname === '/dashboard' ? 'index.html' : url.pathname);
+        const cleanPath = (url.pathname === '/' || url.pathname === '/dashboard') ? 'index.html' : url.pathname.replace(/^\/+/, '');
+        const filePath = path.resolve(PUBLIC_DIR, cleanPath);
+
+        // Path traversal protection: ensure file path remains strictly within PUBLIC_DIR
+        if (!filePath.startsWith(path.resolve(PUBLIC_DIR))) {
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          res.end('Forbidden');
+          return;
+        }
+
         if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
           const ext = path.extname(filePath).toLowerCase();
           const mimeTypes = {
@@ -477,6 +604,14 @@ export class TelemetryServer {
       });
 
       this.wss = new WebSocketServer({ server: this.server });
+
+      this.wss.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          // Port already in use; handled gracefully in this.server.on('error')
+        } else {
+          console.error('[Telemetry] WebSocket server error:', err.message);
+        }
+      });
 
       this.wss.on('connection', (ws) => {
         this.clients.add(ws);
@@ -578,6 +713,15 @@ export class TelemetryServer {
       } else if (payload && payload.action === 'scan_elms') {
         fetch(`http://localhost:${this.port}/api/elms/scan`, { method: 'POST' }).catch(() => {});
       }
+    }
+
+    if (type === 'DIRECTIVE_SUBMIT' && payload) {
+      const { prompt, url, title } = payload;
+      const dirId = `dir_${Date.now()}`;
+      const entry = { id: dirId, prompt, url, title, timestamp: new Date().toISOString() };
+      this.directives.push(entry);
+      this.log(`📩 [HUD Directive] "${prompt}"`, 'step');
+      this.broadcast('DIRECTIVE_RECEIVED', entry);
     }
 
     if (type === 'SYNC_ELMS_DOM_ASSIGNMENTS' && payload && Array.isArray(payload.assignments)) {

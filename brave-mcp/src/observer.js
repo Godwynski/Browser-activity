@@ -36,6 +36,7 @@ export class BrowserObserver {
       if (e.disabled) line += ` [disabled]`;
       if (e.domMeta?.id) line += ` #${e.domMeta.id}`;
       if (e.frameIndex !== null && e.frameIndex !== undefined) line += ` (iframe ${e.frameIndex})`;
+      if (e.inViewport === false) line += ` [off-screen]`;
       return line;
     }).join('\n');
   }
@@ -192,14 +193,31 @@ export class BrowserObserver {
             query = 'button, a[href], [role="button"], [role="link"]';
           }
 
+          function queryDeep(container) {
+            let matches = Array.from(container.querySelectorAll(query));
+            try {
+              const allElements = container.querySelectorAll('*');
+              for (const el of allElements) {
+                if (el.shadowRoot) {
+                  matches = matches.concat(queryDeep(el.shadowRoot));
+                }
+              }
+            } catch (_) {}
+            return matches;
+          }
+
           const items = [];
-          const els = Array.from(root.querySelectorAll(query));
+          const els = queryDeep(root);
+          const vWidth = window.innerWidth || 1280;
+          const vHeight = window.innerHeight || 800;
+
           for (const el of els) {
-            if (items.length >= max) break;
             const rect = el.getBoundingClientRect();
             // Visible elements
             if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden') {
               const text = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('value') || '').trim();
+              const inViewport = (rect.top >= 0 && rect.top <= vHeight && rect.left >= 0 && rect.left <= vWidth);
+
               items.push({
                 tag: el.tagName.toLowerCase(),
                 role: el.getAttribute('role') || el.tagName.toLowerCase(),
@@ -208,11 +226,22 @@ export class BrowserObserver {
                 value: (el.value || '').slice(0, 100),
                 disabled: el.disabled || undefined,
                 id: el.id || undefined,
-                nameAttr: el.name || undefined
+                nameAttr: el.name || undefined,
+                inViewport,
+                top: Math.round(rect.top),
+                left: Math.round(rect.left)
               });
             }
           }
-          return items;
+
+          // Viewport-Priority Sorting: visible items first, then top-to-bottom
+          items.sort((a, b) => {
+            if (a.inViewport && !b.inViewport) return -1;
+            if (!a.inViewport && b.inViewport) return 1;
+            return a.top - b.top;
+          });
+
+          return items.slice(0, max);
         }, { max: maxElements - elements.length, scopeSelector: scope, filterMode: filter });
 
         for (const d of domElements) {
@@ -225,9 +254,13 @@ export class BrowserObserver {
 
           if (existing) {
             existing.domMeta = d;
+            existing.inViewport = d.inViewport;
             if (d.value && !existing.value) existing.value = d.value;
             const mapItem = elementMap.get(existing.ref);
-            if (mapItem) mapItem.domMeta = d;
+            if (mapItem) {
+              mapItem.domMeta = d;
+              mapItem.inViewport = d.inViewport;
+            }
           } else {
             if (elements.length >= maxElements) break;
             const ref = `e${refCounter++}`;
@@ -238,6 +271,7 @@ export class BrowserObserver {
               value: d.value || undefined,
               disabled: d.disabled,
               domMeta: d,
+              inViewport: d.inViewport,
               frameIndex: isMain ? null : fIdx
             };
             elements.push(item);

@@ -73,6 +73,12 @@
         <button class="ag-btn" id="ag-action-handouts" title="Scrape handouts for this course">📚 Handouts</button>
         <button class="ag-btn" id="ag-action-run-code" title="Execute Python/lab code">▶ Run</button>
       </div>
+
+      <!-- AI Directive Command Bar -->
+      <div class="ag-directive-container">
+        <input type="text" class="ag-directive-input" id="ag-directive-input" placeholder="Type AI directive (e.g. 'Extract all assignment links')..." />
+        <button class="ag-directive-btn" id="ag-btn-send-directive" title="Send Directive to Antigravity">➤</button>
+      </div>
     </div>
   `;
 
@@ -91,6 +97,38 @@
   const taskPercent = document.getElementById('ag-task-percent');
   const progressFill = document.getElementById('ag-progress-fill');
   const consoleBox = document.getElementById('ag-console-box');
+  const directiveInput = document.getElementById('ag-directive-input');
+  const sendDirectiveBtn = document.getElementById('ag-btn-send-directive');
+
+  // Submit AI Directive
+  async function submitDirective() {
+    const text = (directiveInput.value || '').trim();
+    if (!text) return;
+    directiveInput.value = '';
+    appendLog(`User Directive: "${text}"`, 'step');
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'DIRECTIVE_SUBMIT',
+        payload: {
+          prompt: text,
+          url: window.location.href,
+          title: document.title
+        }
+      }));
+    } else {
+      fetch('http://localhost:8765/api/directives/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text, url: window.location.href, title: document.title })
+      }).catch(err => appendLog(`Directive error: ${err.message}`, 'error'));
+    }
+  }
+
+  sendDirectiveBtn?.addEventListener('click', submitDirective);
+  directiveInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitDirective();
+  });
 
   // Toggle Window / Pill
   function setExpanded(expand) {
@@ -393,6 +431,13 @@
       }
     }
 
+    // Detect academic term dynamically
+    let detectedTerm = 'midterm';
+    const bcText = (document.querySelector('.breadcrumbs, .nav_class_title, .class_title, #page_title')?.innerText || document.title || '').toLowerCase();
+    if (bcText.includes('prelim')) detectedTerm = 'prelim';
+    else if (bcText.includes('final') && !bcText.includes('prefinal') && !bcText.includes('semi-final')) detectedTerm = 'final';
+    else if (bcText.includes('prefinal') || bcText.includes('semi-final')) detectedTerm = 'prefinal';
+
     const isDropbox = path.includes('/student_dropbox_assignment/show/');
     const isAssignment = path.includes('/student_assignment/show/');
     const isQuiz = path.includes('/student_quiz/show/');
@@ -427,7 +472,7 @@
               <span class="ag-status-pill ${statusType}">${escapeHtml(detectedStatus)}</span>
             </div>
             <div class="ag-assignment-title" style="font-size: 13px;">${escapeHtml(detectedTitle)}</div>
-            <div class="ag-assignment-due">${escapeHtml(subjectName)} ${detectedDue ? `• ${escapeHtml(detectedDue)}` : ''}</div>
+            <div class="ag-assignment-due">${escapeHtml(subjectName)} • ${escapeHtml(detectedTerm.toUpperCase())} ${detectedDue ? `• ${escapeHtml(detectedDue)}` : ''}</div>
             <div class="ag-assignment-actions" style="margin-top: 6px;">
               <button class="ag-mini-btn primary" id="ag-btn-ingest-single">⚡ Ingest to courses/</button>
               <button class="ag-mini-btn" id="ag-btn-ignore-single">👁️‍🗨️ Ignore</button>
@@ -439,12 +484,12 @@
         if (statusType !== 'submitted') pillDot.className = 'ag-pulse-dot running';
 
         document.getElementById('ag-btn-ingest-single')?.addEventListener('click', async () => {
-          appendLog(`Ingesting ${detectedTitle} into courses/${subjectName}/...`, 'step');
+          appendLog(`Ingesting ${detectedTitle} into courses/${subjectName}/assignments/${detectedTerm}/...`, 'step');
           try {
             const resp = await fetch('http://localhost:8765/api/elms/ingest', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subject: subjectName, title: detectedTitle, url })
+              body: JSON.stringify({ subject: subjectName, title: detectedTitle, url, term: detectedTerm })
             });
             const res = await resp.json();
             if (res.success) appendLog(`Scaffolded: ${res.path}`, 'success');
@@ -504,7 +549,7 @@
       const href = link.href || '';
       const lower = title.toLowerCase();
 
-      if (!title || lower === 'assignment' || lower === 'title' || lower === 'name' || lower.includes('expand all') || lower.includes('handout') || title.length < 3) {
+      if (!title || lower === 'assignment' || lower === 'title' || lower === 'name' || lower.includes('expand all') || lower.includes('handout') || lower.includes('internet explorer') || lower.includes('unsupported browser') || title.length < 3) {
         continue;
       }
       if (seenUrls.has(href)) continue;
@@ -552,7 +597,7 @@
                            lower.includes('activity') || lower.includes('laboratory') ||
                            lower.includes('performance task') || lower.includes('assignment');
 
-        if (isTaskLink && title.length > 3 && !seenUrls.has(href) && !lower.includes('expand all') && !lower.includes('handout')) {
+        if (isTaskLink && title.length > 3 && !seenUrls.has(href) && !lower.includes('expand all') && !lower.includes('handout') && !lower.includes('internet explorer') && !lower.includes('unsupported browser')) {
           seenUrls.add(href);
           const parent = a.closest('tr, li, .item, .card, div') || a.parentElement;
           const parentText = parent ? parent.innerText : '';

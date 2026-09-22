@@ -1,0 +1,16 @@
+{
+  "vpcId": "vpc-0ded9b7fb55a8499b",
+  "pubSub1Id": "subnet-07abb5bba5f73fc6a",
+  "privSub1Id": "subnet-0ea82e77240481460",
+  "igwId": "igw-03d604ff42268294b",
+  "pubRtbId": "rtb-097107099f74fc6e8",
+  "natEip": "3.222.145.172",
+  "natGwId": "nat-0b87d76193902202d",
+  "privRtbId": "rtb-04b5fc5f7e88fcb19",
+  "pubSub2Id": "subnet-0e18f75890552c9d3",
+  "privSub2Id": "subnet-060a1c32d6a4eabd5",
+  "sgId": "sg-099a3507be50eccaa",
+  "instanceId": "i-0b5ac3ad69b85c158",
+  "publicDns": "ec2-3-91-56-66.compute-1.amazonaws.com",
+  "publicIp": "3.91.56.66"
+}

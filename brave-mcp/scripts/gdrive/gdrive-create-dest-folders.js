@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function createFolder(page, name) {
   console.log(`Creating folder "${name}"...`);

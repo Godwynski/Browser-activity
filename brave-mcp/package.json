@@ -9,11 +9,11 @@
     "test": "node test/test-connection.js",
     "test:protocol": "node test/test-mcp-protocol.js",
     "test:battery": "node test/test-battery.js",
-    "test:cobrowse": "node test/test-co-browsing.js",
     "test:tokens": "node test/test-token-optimizations.js",
-    "test:all": "npm run test:protocol && npm run test:battery && npm run test:tokens && npm run test:cobrowse && npm test"
+    "test:all": "npm run test:protocol && npm run test:tokens && npm test"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.1137.0",
     "@modelcontextprotocol/sdk": "^1.6.1",
     "playwright-core": "^1.50.1",
     "ws": "^8.21.3"

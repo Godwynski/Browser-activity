@@ -1,4 +1,4 @@
-import { runElmsCli } from '../../.agents/skills/sti-elms/scripts/elms-cli.js';
+import { runElmsCli } from '../../../.agents/skills/sti-elms/scripts/elms-cli.js';
 
 
 /**

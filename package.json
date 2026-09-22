@@ -10,5 +10,8 @@
     "lab:cube": "python courses/Computer_Graphics_Programming/assignments/midterm/03_Laboratory_Exercise_1/src/wireframe_cube.py",
     "telemetry": "node brave-mcp/src/telemetry-server.js",
     "test": "npm --prefix brave-mcp test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ec2": "^3.1137.0"
   }
 }

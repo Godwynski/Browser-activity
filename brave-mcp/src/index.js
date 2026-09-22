@@ -35,15 +35,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'brave_tabs',
         description:
-          'List, switch, create, close tabs or open dedicated agent windows in Brave Browser. ' +
-          'Differentiates between your personal browsing tabs and the isolated Agent Workspace window.',
+          'List, switch, create, close, or focus tabs in your running Brave Browser.',
         inputSchema: {
           type: 'object',
           properties: {
             action: {
               type: 'string',
-              enum: ['list', 'switch', 'new', 'new_window', 'close', 'focus'],
-              description: 'Tab action to perform (default is "list"). "new_window" opens a dedicated agent window.',
+              enum: ['list', 'switch', 'new', 'close', 'focus'],
+              description: 'Tab action to perform (default is "list"). "new" opens a new tab in your existing browser window.',
               default: 'list'
             },
             index: {
@@ -52,18 +51,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             url: {
               type: 'string',
-              description: 'URL to navigate to when creating a new tab or window'
+              description: 'URL to navigate to when creating a new tab'
             },
             bringToFront: {
               type: 'boolean',
-              description: 'Whether to bring the tab/window visually to the front (default false to avoid stealing user focus)',
+              description: 'Whether to bring the tab visually to the front (default false)',
               default: false
-            },
-            target: {
-              type: 'string',
-              enum: ['agent', 'user'],
-              description: 'Target window for actions like "focus": "agent" (default) or "user"',
-              default: 'agent'
             }
           }
         }
@@ -338,28 +331,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
-        if (action === 'new_window') {
-          const page = await brave.createAgentWindow(args.url || null);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({ success: true, message: 'Dedicated Agent Window created', url: page.url() }, null, 2)
-              }
-            ]
-          };
-        }
-
         if (action === 'focus') {
           const targetIndex = args.index !== undefined ? args.index : null;
-          const page = await brave.getTargetPage(args.target || 'agent', targetIndex);
+          const page = await brave.getTargetPage('active', targetIndex);
           await page.bringToFront().catch(() => {});
           const title = await page.title().catch(() => '');
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({ success: true, message: 'Window brought to front', title, url: page.url() }, null, 2)
+                text: JSON.stringify({ success: true, message: 'Tab brought to front', title, url: page.url() }, null, 2)
               }
             ]
           };

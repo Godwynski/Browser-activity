@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 const CLASSES = [
   { name: 'Computer Graphics Programming', classId: '5713354' },

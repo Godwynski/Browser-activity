@@ -117,13 +117,12 @@ async function runTestSuite() {
   const server = await startTestServer(9333);
   console.log("✅ Test HTTP server started on http://127.0.0.1:9333");
 
-  const braveExe = "C:\\Users\\Godwyn\\AppData\\Local\\BraveSoftware\\Brave-Browser\\Application\\brave.exe";
-  
-  // Launch Brave directly via Playwright to ensure exact Brave binary execution
-  console.log(`🚀 Launching Brave Browser directly: ${braveExe}`);
+  // Use headless Edge for test bench battery to ensure zero interference with user's Brave
+  console.log("🚀 Launching headless test runner...");
+  const edgeExe = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
   const browser = await chromium.launch({
-    executablePath: braveExe,
-    headless: true, // headless mode for fast CI/test battery
+    executablePath: edgeExe,
+    headless: true,
     args: ['--no-sandbox', '--disable-gpu']
   });
 

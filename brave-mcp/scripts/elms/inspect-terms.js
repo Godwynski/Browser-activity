@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BASE_HANDOUTS_DIR = path.resolve(__dirname, '../../Handouts');

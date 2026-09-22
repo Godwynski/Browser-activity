@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function main() {
   const m = new BraveManager();

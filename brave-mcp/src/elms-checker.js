@@ -118,7 +118,7 @@ export class ElmsChecker {
             return { subject: subjName, title: title.replace(/\s+/g, ' '), url, status };
           }, subject.name, currentUrl);
 
-          if (singleItem.title && singleItem.title.length > 2) {
+          if (singleItem.title && singleItem.title.length > 2 && !/internet explorer|unsupported browser/i.test(singleItem.title)) {
             items.push(singleItem);
           }
         }
@@ -134,7 +134,7 @@ export class ElmsChecker {
             if (a) {
               const text = (a.innerText || a.getAttribute('title') || '').trim();
               const lower = text.toLowerCase();
-              if (text.length > 2 && lower !== 'assignment' && lower !== 'title' && !lower.includes('expand all') && !lower.includes('handout')) {
+              if (text.length > 2 && lower !== 'assignment' && lower !== 'title' && !lower.includes('expand all') && !lower.includes('handout') && !lower.includes('internet explorer') && !lower.includes('unsupported browser')) {
                 const rText = r.innerText || '';
                 let status = '⏳ Due (Not Submitted)';
                 if (/submitted|graded|completed|turned in/i.test(rText)) {
@@ -183,7 +183,7 @@ export class ElmsChecker {
               lower.includes('assignment') ||
               lower.includes('performance task');
 
-            if (isAssignmentLink && text.length > 3 && !lower.includes('expand all') && !lower.includes('handout')) {
+            if (isAssignmentLink && text.length > 3 && !lower.includes('expand all') && !lower.includes('handout') && !lower.includes('internet explorer') && !lower.includes('unsupported browser')) {
               // Try to find status or parent text
               const parentText = a.parentElement ? a.parentElement.innerText : '';
               let status = 'Unknown';
@@ -211,6 +211,7 @@ export class ElmsChecker {
             seen.add(item.url);
             return true;
           });
+        }, subject.name);
         items.push(...classItems);
 
         // Deduplicate all discovered items for this subject
@@ -230,13 +231,27 @@ export class ElmsChecker {
           const itemKey = `${courseFolder}:${cleanName}`;
           const isIgnored = ignoredSet.has(itemKey);
 
-          // Check if local folder exists in courses/<Subject>/assignments/midterm/
-          const localMidtermDir = path.join(COURSES_DIR, courseFolder, 'assignments', 'midterm', cleanName);
-          const localExists = fs.existsSync(localMidtermDir);
+          // Check if local folder exists in courses/<Subject>/assignments/<Term>/
+          let localDir = path.join(COURSES_DIR, courseFolder, 'assignments', 'midterm', cleanName);
+          let localExists = fs.existsSync(localDir);
+          if (!localExists) {
+            const assignDir = path.join(COURSES_DIR, courseFolder, 'assignments');
+            if (fs.existsSync(assignDir)) {
+              const terms = fs.readdirSync(assignDir, { withFileTypes: true }).filter(d => d.isDirectory());
+              for (const t of terms) {
+                const termCheck = path.join(assignDir, t.name, cleanName);
+                if (fs.existsSync(termCheck)) {
+                  localDir = termCheck;
+                  localExists = true;
+                  break;
+                }
+              }
+            }
+          }
           let localCompleted = false;
 
           if (localExists) {
-            const answerPath = path.join(localMidtermDir, 'answer.md');
+            const answerPath = path.join(localDir, 'answer.md');
             if (fs.existsSync(answerPath) && fs.statSync(answerPath).size > 50) {
               localCompleted = true;
             }

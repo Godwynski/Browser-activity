@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function test() {
   const brave = new BraveManager('http://127.0.0.1:9222');

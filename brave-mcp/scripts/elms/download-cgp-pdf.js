@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 const URL = 'https://elms.sti.edu/files/3056044/03_Laboratory_Exercise_1(27).pdf?lmsauth=93bfd9fef6f7f7179cbd3dd4066ee94811e8cacc';
 const OUT_DIR = path.resolve('../CGP_Midterm_Assignments/03_Laboratory_Exercise_1');

@@ -1,7 +1,7 @@
-import { BraveManager } from '../src/browser.js';
-import { BrowserObserver } from '../src/observer.js';
-import { ActionEngine } from '../src/actions.js';
-import { StateVerifier } from '../src/verifier.js';
+import { BraveManager } from '../../src/browser.js';
+import { BrowserObserver } from '../../src/observer.js';
+import { ActionEngine } from '../../src/actions.js';
+import { StateVerifier } from '../../src/verifier.js';
 
 async function main() {
   console.log("Connecting to Brave with Personal Profile...");

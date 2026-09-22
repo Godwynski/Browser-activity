@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { PATHS, ensureArtifactDirs } from '../src/paths.js';
+import { PATHS, ensureArtifactDirs } from '../../src/paths.js';
 
 ensureArtifactDirs();
 const BASE_DIR = PATHS.elmsHandouts;

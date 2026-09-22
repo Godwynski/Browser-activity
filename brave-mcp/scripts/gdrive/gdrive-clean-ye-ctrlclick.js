@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function moveSelected(page, targetFolderName) {
   // Wait for selection to settle

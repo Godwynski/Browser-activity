@@ -1,5 +1,5 @@
-import { BraveManager } from '../src/browser.js';
-import { BrowserObserver } from '../src/observer.js';
+import { BraveManager } from '../../src/browser.js';
+import { BrowserObserver } from '../../src/observer.js';
 
 async function sendHello() {
   console.log("Connecting to Brave...");

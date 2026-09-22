@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { chromium } from 'playwright-core';
 import { BrowserObserver } from '../src/observer.js';
 import { StateVerifier } from '../src/verifier.js';
 import { ActionEngine } from '../src/actions.js';
@@ -8,9 +8,14 @@ async function testTokenOptimizations() {
   console.log("🧪 TESTING TOKEN OPTIMIZATIONS (COMPACT, SCOPE, EVAL, BATCH)");
   console.log("==========================================================\n");
 
-  const brave = new BraveManager('http://127.0.0.1:9222');
-  await brave.ensureConnected();
-  const page = await brave.getAgentPage({ autoCreate: true });
+  const edgeExe = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+  const browser = await chromium.launch({
+    executablePath: edgeExe,
+    headless: true,
+    args: ['--no-sandbox', '--disable-gpu']
+  });
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
   const observer = new BrowserObserver();
   const verifier = new StateVerifier(observer);
@@ -115,6 +120,7 @@ async function testTokenOptimizations() {
   console.log("   ✅ Batch action executed and verified!");
 
   console.log("\n🎉 ALL TOKEN OPTIMIZATION TESTS PASSED SUCCESSFULLY!");
+  await browser.close();
   process.exit(0);
 }
 

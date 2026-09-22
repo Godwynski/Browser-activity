@@ -11,7 +11,7 @@ try {
   }
   for (const pid of pids) {
     try {
-      const task = execSync(`wmic process where "ProcessId=${pid}" get CommandLine,ProcessId /format:list`, { encoding: 'utf8' });
+      const task = execSync(`tasklist /FI "PID eq ${pid}" /FO LIST`, { encoding: 'utf8' });
       console.log(`PID ${pid}:\n${task}`);
     } catch (e) {}
   }

@@ -1,4 +1,4 @@
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 async function moveCurrentFiltered(page, targetFolderName) {
   // Wait a bit

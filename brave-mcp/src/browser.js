@@ -8,7 +8,6 @@ export class BraveManager {
     this.cdpUrl = cdpUrl;
     this.browser = null;
     this.context = null;
-    this.agentPage = null;
     ensureArtifactDirs();
   }
 
@@ -26,18 +25,17 @@ export class BraveManager {
         eventsEnabled: true
       });
     } catch (err) {
-      // Browser-level CDP session might not be supported on all versions; ignore if gracefully bypassed
+      // Graceful fallback if unsupported
     }
   }
 
   /**
-   * Attaches page-level download isolation to route all downloads strictly into the artifacts directory.
+   * Attaches page-level download routing to save into artifacts/downloads.
    */
   async _setupPageDownloads(page, downloadDir = PATHS.downloadsRaw) {
     if (!page || page.isClosed()) return;
     try {
       ensureArtifactDirs();
-      // CDP Page level routing
       const client = await page.context().newCDPSession(page);
       await client.send('Page.setDownloadBehavior', {
         behavior: 'allow',
@@ -58,64 +56,44 @@ export class BraveManager {
   }
 
   /**
-   * Ensures connection to Brave over CDP or auto-launches Brave with persistent context.
+   * Attaches strictly to the user's existing, running Brave browser via CDP.
+   * NEVER launches secondary browser instances, separate profiles, or isolated windows.
    */
   async ensureConnected() {
     if (this.browser && this.browser.isConnected()) {
       return this.browser;
     }
     this.browser = null;
+    this.context = null;
 
-    if (this.context) {
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const b = this.context.browser();
-        if (b && b.isConnected()) {
-          return this.context;
-        }
-      } catch (e) {}
-      this.context = null;
-      this.agentPage = null;
-    }
-
-    // Connect strictly to already running Brave over CDP
-    try {
-      this.browser = await chromium.connectOverCDP(this.cdpUrl, { timeout: 4000 });
-      await this._enforceBrowserDownloadBehavior(this.browser);
-      return this.browser;
-    } catch (err) {
-      throw new Error(
-        `Could not connect to existing Brave browser on ${this.cdpUrl}.\n` +
-        `Ensure your connected Brave browser is running with '--remote-debugging-port=9222'.\n` +
-        `Antigravity will NOT spawn duplicate instances or separate profile windows.`
-      );
-    }
-  }
-
-  /**
-   * Returns all available browser pages across contexts.
-   */
-  async getPages() {
-    await this.ensureConnected();
-
-    if (this.context) {
-      try {
-        let pages = this.context.pages().filter(p => !p.isClosed());
-        if (pages.length === 0) {
-          const p = await this.context.newPage();
-          pages = [p];
-        }
-        return pages;
+        this.browser = await chromium.connectOverCDP(this.cdpUrl, { timeout: 3500 });
+        const contexts = this.browser.contexts();
+        this.context = contexts[0] || null;
+        await this._enforceBrowserDownloadBehavior(this.browser);
+        return this.browser;
       } catch (err) {
-        this.context = null;
-        this.agentPage = null;
-        await this.ensureConnected();
+        lastErr = err;
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 600));
+        }
       }
     }
 
-    if (!this.browser || !this.browser.isConnected()) {
-      this.browser = null;
-      await this.ensureConnected();
-    }
+    throw new Error(
+      `Could not connect to existing Brave browser on ${this.cdpUrl} (${lastErr?.message}).\n` +
+      `Ensure your connected Brave browser is running with '--remote-debugging-port=9222'.\n` +
+      `Antigravity strictly attaches to your logged-in browser and will NEVER spawn duplicate instances or separate profile windows.`
+    );
+  }
+
+  /**
+   * Returns all open pages in the user's connected browser.
+   */
+  async getPages() {
+    await this.ensureConnected();
 
     const contexts = this.browser ? this.browser.contexts() : [];
     const pages = [];
@@ -126,188 +104,73 @@ export class BraveManager {
         }
       }
     }
+
+    if (pages.length === 0 && this.context) {
+      const p = await this.context.newPage();
+      pages.push(p);
+    }
+
     return pages;
   }
 
   /**
-   * Sets up event listeners on the agent page to track closures cleanly.
+   * Gets the user's active/focused page in their existing browser window.
    */
-  _setupAgentPageListeners(page) {
-    if (!page) return;
-    page.once('close', () => {
-      if (this.agentPage === page) {
-        this.agentPage = null;
-      }
-    });
-  }
-
-  /**
-   * Spawns or binds to a dedicated, separate Agent Window in Brave.
-   * This guarantees that AI actions never collide with the user's tabs or steal focus.
-   */
-  async createAgentWindow(initialUrl = null) {
-    await this.ensureConnected();
-
-    const marker = `about:blank#agent-${Date.now()}`;
-    let newPage = null;
-
-    if (this.browser) {
-      try {
-        const session = await this.browser.newBrowserCDPSession();
-        await session.send('Target.createTarget', {
-          url: marker,
-          newWindow: true
-        });
-
-        // Wait for new page with marker URL to appear in Playwright context
-        for (let i = 0; i < 25; i++) {
-          await new Promise(r => setTimeout(r, 200));
-          const pages = await this.getPages();
-          newPage = pages.find(p => !p.isClosed() && p.url() === marker);
-          if (newPage) break;
-        }
-      } catch (err) {
-        console.warn("CDP window creation fallback:", err.message);
-      }
-    }
-
-    if (!newPage) {
-      // Fallback: create page in current context
-      const ctx = this.context || (this.browser.contexts()[0] || await this.browser.newContext());
-      newPage = await ctx.newPage();
-    }
-
-    this.agentPage = newPage;
-    this._setupAgentPageListeners(this.agentPage);
-    await this._setupPageDownloads(this.agentPage);
-
-    // Persist agent window identity across all navigations
-    await this.agentPage.addInitScript(() => {
-      window.__ANTIGRAVITY_AGENT_WINDOW__ = true;
-    }).catch(() => {});
-    await this.agentPage.evaluate(() => {
-      window.__ANTIGRAVITY_AGENT_WINDOW__ = true;
-    }).catch(() => {});
-
-    if (initialUrl && initialUrl !== 'about:blank') {
-      await this.agentPage.goto(initialUrl, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-    } else {
-      await this.agentPage.evaluate(() => {
-        document.title = '🤖 Agent Workspace';
-        document.body.innerHTML = `
-          <div style="font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;color:#334155;text-align:center;">
-            <div style="font-size:52px;margin-bottom:12px;">🤖</div>
-            <h2 style="margin:0 0 8px 0;color:#0f172a;font-weight:700;">Antigravity Agent Window</h2>
-            <p style="margin:0;color:#64748b;max-width:460px;line-height:1.5;">
-              This window is reserved for autonomous AI browser tasks. 
-              Your main browser window remains completely uninterrupted.
-            </p>
-          </div>
-        `;
-      }).catch(() => {});
-    }
-
-    return this.agentPage;
-  }
-
-  /**
-   * Evaluates if a page belongs to the dedicated Agent Window.
-   */
-  async isAgentPage(page) {
-    if (!page || page.isClosed()) return false;
-    if (page === this.agentPage) return true;
-    try {
-      const url = page.url();
-      if (url.includes('#agent-')) return true;
-      const title = await page.title().catch(() => '');
-      if (title.includes('Agent Workspace') || title.includes('[🤖 Agent')) return true;
-      const isTagged = await page.evaluate(() => !!window.__ANTIGRAVITY_AGENT_WINDOW__).catch(() => false);
-      if (isTagged) return true;
-    } catch (e) {}
-    return false;
-  }
-
-  /**
-   * Retrieves the dedicated agent page (in the separate agent window).
-   * Automatically creates the agent window if it doesn't already exist.
-   */
-  async getAgentPage({ autoCreate = true } = {}) {
-    if (this.agentPage && !this.agentPage.isClosed()) {
-      return this.agentPage;
-    }
-
-    // Check if an existing page is already marked as the agent window
-    const pages = await this.getPages();
-    for (const p of pages) {
-      if (await this.isAgentPage(p)) {
-        this.agentPage = p;
-        this._setupAgentPageListeners(p);
-        await this._setupPageDownloads(p);
-        return p;
-      }
-    }
-
-    if (autoCreate) {
-      return await this.createAgentWindow();
-    }
-
-    return null;
-  }
-
-  /**
-   * Resolves target page:
-   * - 'agent' (default): Dedicated Agent Window (zero user interference)
-   * - 'user' / 'active': User's primary active window/tab
-   * - index (number): Specific tab index
-   */
-  async getTargetPage(target = 'agent', index = null) {
+  async getActivePage() {
     const pages = await this.getPages();
     if (pages.length === 0) {
       throw new Error("No open tabs found in Brave.");
     }
 
-    // Specific numerical index requested
+    // Return the tab currently visible to the user
+    for (const p of pages) {
+      try {
+        const isVisible = await p.evaluate(() => document.visibilityState === 'visible').catch(() => false);
+        if (isVisible) {
+          await this._setupPageDownloads(p);
+          return p;
+        }
+      } catch (e) {}
+    }
+
+    const fallbackPage = pages[pages.length - 1] || pages[0];
+    await this._setupPageDownloads(fallbackPage);
+    return fallbackPage;
+  }
+
+  /**
+   * Alias for backward compatibility: returns the active user page.
+   * NEVER opens a separate window.
+   */
+  async getAgentPage() {
+    return await this.getActivePage();
+  }
+
+  /**
+   * Resolves target page:
+   * - index (number): specific tab index
+   * - otherwise: user's current active tab
+   */
+  async getTargetPage(target = 'active', index = null) {
+    const pages = await this.getPages();
+    if (pages.length === 0) {
+      throw new Error("No open tabs found in Brave.");
+    }
+
     if (index !== null && index !== undefined) {
       if (index < 0 || index >= pages.length) {
         throw new Error(`Tab index ${index} out of range (0 to ${pages.length - 1}).`);
       }
-      return pages[index];
+      const page = pages[index];
+      await this._setupPageDownloads(page);
+      return page;
     }
 
-    // User's active page requested
-    if (target === 'user' || target === 'active') {
-      const userPages = [];
-      for (const p of pages) {
-        if (!(await this.isAgentPage(p))) {
-          userPages.push(p);
-        }
-      }
-      if (userPages.length > 0) {
-        // Prioritize the tab currently visible in user's browser window
-        for (const up of userPages) {
-          try {
-            const isVisible = await up.evaluate(() => document.visibilityState === 'visible').catch(() => false);
-            if (isVisible) return up;
-          } catch (e) {}
-        }
-        return userPages[0];
-      }
-      return pages[0];
-    }
-
-    // Default: Dedicated Agent Window page
-    return await this.getAgentPage({ autoCreate: true });
+    return await this.getActivePage();
   }
 
   /**
-   * Gets active page (defaults to agent page for isolation, or falls back to first page).
-   */
-  async getActivePage() {
-    return await this.getTargetPage('agent');
-  }
-
-  /**
-   * Sets the active tab by index, with optional focus stealing.
+   * Sets the active tab by index.
    */
   async setActivePage(index, { bringToFront = false } = {}) {
     const pages = await this.getPages();
@@ -322,13 +185,15 @@ export class BraveManager {
   }
 
   /**
-   * Opens a new tab with the given URL.
+   * Opens a new tab in the user's existing browser window.
+   * NEVER opens a separate OS window.
    */
   async newTab(url = 'about:blank') {
     await this.ensureConnected();
-
-    const ctx = this.context || (this.browser.contexts()[0] || await this.browser.newContext());
+    const ctx = this.context || this.browser.contexts()[0];
+    if (!ctx) throw new Error("No browser context available.");
     const page = await ctx.newPage();
+    await this._setupPageDownloads(page);
     if (url && url !== 'about:blank') {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
     }
@@ -343,16 +208,11 @@ export class BraveManager {
     if (index < 0 || index >= pages.length) {
       throw new Error(`Tab index ${index} out of range.`);
     }
-    const page = pages[index];
-    if (page === this.agentPage) {
-      this.agentPage = null;
-    }
-    await page.close();
+    await pages[index].close();
   }
 
-
   /**
-   * Returns list of open tabs with metadata, clearly showing User vs Agent windows.
+   * Returns list of open tabs with title, url, and active state.
    */
   async listTabs() {
     const pages = await this.getPages();
@@ -361,23 +221,20 @@ export class BraveManager {
       const p = pages[i];
       let title = 'Untitled';
       let url = 'about:blank';
+      let isVisible = false;
       try {
         title = await p.title();
         url = p.url();
+        isVisible = await p.evaluate(() => document.visibilityState === 'visible').catch(() => false);
       } catch (e) {}
-
-      const isAgent = await this.isAgentPage(p);
 
       tabs.push({
         index: i,
         title,
         url,
-        role: isAgent ? 'Agent Workspace (Isolated Window)' : 'User Personal Window',
-        isAgentWindow: isAgent,
-        isActive: isAgent
+        isActive: isVisible
       });
     }
     return tabs;
   }
 }
-

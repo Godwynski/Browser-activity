@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { BraveManager } from '../src/browser.js';
+import { BraveManager } from '../../src/browser.js';
 
 const ASSIGNMENTS = [
   {
