@@ -23,7 +23,8 @@ import { BaseBrowserAdapter } from '../core/base-adapter.js';
 import {
   ConnectionError,
   NavigationError,
-  TabNotFoundError
+  TabNotFoundError,
+  TimeoutError
 } from '../core/errors.js';
 import { ObservationEngine } from '../observation/index.js';
 import { ActionExecutor, BatchExecutor } from '../actions/index.js';
@@ -698,6 +699,21 @@ export class ChromiumAdapter extends BaseBrowserAdapter {
         f => f.name() === options.frameId || f.url().includes(options.frameId)
       );
       if (frame) target = frame;
+    }
+
+    const timeout = options.timeout ? Number(options.timeout) : null;
+    if (timeout && timeout > 0) {
+      let timer;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new TimeoutError(`JavaScript evaluation timed out after ${timeout}ms`, { timeout }));
+        }, timeout);
+      });
+      try {
+        return await Promise.race([target.evaluate(script), timeoutPromise]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     }
 
     return await target.evaluate(script);

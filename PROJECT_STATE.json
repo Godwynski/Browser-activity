@@ -175,7 +175,28 @@
         "existing-brave-mcp-behavior-preserved": "PASS"
       }
     },
-    "phase-10": { "name": "Adversarial Testing",              "status": "pending" },
+    "phase-10": {
+      "name": "Adversarial Testing",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "stale-ref-deleted-element-rejection": "PASS",
+        "ambiguous-target-rejection":          "PASS",
+        "mutated-element-semantic-recovery":   "PASS",
+        "obscured-target-click-jacking-prevention": "PASS",
+        "obscured-target-force-override":      "PASS",
+        "dialog-storm-rapid-fire-handling":    "PASS",
+        "mass-element-scalability-1000-nodes": "PASS (<150ms observation, capped at 60)",
+        "deep-nested-shadow-roots-piercing":   "PASS (2-tier nested shadow input & button)",
+        "unreachable-network-destination-handling": "PASS (NavigationError caught, runtime healthy)",
+        "closed-tab-access-rejection":         "PASS (TabNotFoundError)",
+        "javascript-evaluation-timeout-enforcement": "PASS (TimeoutError on hanging eval)",
+        "adversarial-torture-bench-fixture":   "PASS (test-sites/adversarial/index.html)",
+        "browser-runtime-integration":         "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
     "phase-11": { "name": "Final Audit & Release",            "status": "pending" }
   },
   "knownIssues": [
@@ -206,6 +227,7 @@
     "tests/extraction/test-advanced": "PASS (20/20)",
     "tests/mcp/test-mcp-server": "PASS (11/11)",
     "tests/cli/test-cli": "PASS (6/6)",
-    "tests/benchmarks/test-token-benchmarks": "PASS (9/9)"
+    "tests/benchmarks/test-token-benchmarks": "PASS (9/9)",
+    "tests/adversarial/test-adversarial": "PASS (11/11)"
   }
 }

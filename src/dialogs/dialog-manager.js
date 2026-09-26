@@ -50,7 +50,10 @@ export class DialogManager extends EventEmitter {
       mode: this.defaultMode,
       defaultPromptResponse: this.defaultPromptResponse
     };
-    this._tabPolicies.set(tabId, { ...existing, ...policy });
+    const defaultPromptResponse = policy.defaultPromptResponse !== undefined
+      ? policy.defaultPromptResponse
+      : (policy.defaultResponse !== undefined ? policy.defaultResponse : existing.defaultPromptResponse);
+    this._tabPolicies.set(tabId, { ...existing, ...policy, defaultPromptResponse });
   }
 
   /**
