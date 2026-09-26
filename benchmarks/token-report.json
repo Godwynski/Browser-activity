@@ -1,0 +1,215 @@
+{
+  "timestamp": "2026-09-26T08:08:32.953Z",
+  "engine": "Universal Browser Control Runtime v3.0.0",
+  "heuristic": "tokens = Math.ceil(characterCount / 4)",
+  "sites": {
+    "basic": {
+      "rawDom": {
+        "charLength": 21484,
+        "byteLength": 21548,
+        "tokenEstimate": 5371
+      },
+      "level0Minimal": {
+        "charLength": 310,
+        "byteLength": 312,
+        "tokenEstimate": 78,
+        "savingsVsRawPct": 98.5
+      },
+      "level1Compact": {
+        "charLength": 1820,
+        "byteLength": 1822,
+        "tokenEstimate": 455,
+        "elementCount": 33,
+        "savingsVsRawPct": 91.5
+      },
+      "level1VerboseJson": {
+        "charLength": 12068,
+        "byteLength": 12070,
+        "tokenEstimate": 3017,
+        "compactVsJsonSavingsPct": 84.9
+      },
+      "level2TargetedQuery": {
+        "charLength": 883,
+        "byteLength": 885,
+        "tokenEstimate": 221,
+        "query": "button",
+        "elementCount": 15,
+        "savingsVsL1Pct": 51.4
+      },
+      "level2Scoped": {
+        "charLength": 632,
+        "byteLength": 632,
+        "tokenEstimate": 158,
+        "scope": "#section-form",
+        "elementCount": 13,
+        "savingsVsL1Pct": 65.3
+      },
+      "level3FullJson": {
+        "charLength": 19828,
+        "byteLength": 19834,
+        "tokenEstimate": 4957,
+        "elementCount": 56
+      },
+      "level4ScreenshotBase64": {
+        "charLength": 65903,
+        "byteLength": 65903,
+        "tokenEstimate": 16476
+      },
+      "structuredExtraction": {
+        "text": {
+          "charLength": 1712,
+          "byteLength": 1730,
+          "tokenEstimate": 428,
+          "savingsVsRawPct": 92
+        },
+        "tables": {
+          "charLength": 1190,
+          "byteLength": 1190,
+          "tokenEstimate": 298,
+          "savingsVsRawPct": 94.5
+        },
+        "links": {
+          "charLength": 940,
+          "byteLength": 940,
+          "tokenEstimate": 235,
+          "savingsVsRawPct": 95.6
+        },
+        "forms": {
+          "charLength": 3586,
+          "byteLength": 3586,
+          "tokenEstimate": 897,
+          "savingsVsRawPct": 83.3
+        },
+        "metadata": {
+          "charLength": 1249,
+          "byteLength": 1253,
+          "tokenEstimate": 313,
+          "savingsVsRawPct": 94.2
+        }
+      },
+      "directEvaluate": {
+        "charLength": 43,
+        "byteLength": 45,
+        "tokenEstimate": 11,
+        "observationOverheadTokens": 0
+      },
+      "tokenBudgetEnforced": {
+        "maxTokensParam": 50,
+        "charLength": 229,
+        "byteLength": 229,
+        "tokenEstimate": 58,
+        "truncated": true,
+        "tokenBudgetMeta": {
+          "maxTokens": 50,
+          "originalElements": 33,
+          "retainedElements": 4,
+          "estimatedTokens": 58
+        }
+      }
+    },
+    "advanced": {
+      "rawDom": {
+        "charLength": 9558,
+        "byteLength": 9562,
+        "tokenEstimate": 2390
+      },
+      "level0Minimal": {
+        "charLength": 310,
+        "byteLength": 312,
+        "tokenEstimate": 78,
+        "savingsVsRawPct": 96.7
+      },
+      "level1Compact": {
+        "charLength": 1352,
+        "byteLength": 1352,
+        "tokenEstimate": 338,
+        "elementCount": 20,
+        "savingsVsRawPct": 85.9
+      },
+      "level1VerboseJson": {
+        "charLength": 7502,
+        "byteLength": 7502,
+        "tokenEstimate": 1876,
+        "compactVsJsonSavingsPct": 82
+      },
+      "level2TargetedQuery": {
+        "charLength": 31,
+        "byteLength": 31,
+        "tokenEstimate": 8,
+        "query": "table",
+        "elementCount": 0,
+        "savingsVsL1Pct": 97.6
+      },
+      "level2Scoped": {
+        "charLength": 31,
+        "byteLength": 31,
+        "tokenEstimate": 8,
+        "scope": "#tables-section",
+        "elementCount": 0,
+        "savingsVsL1Pct": 97.6
+      },
+      "level3FullJson": {
+        "charLength": 15962,
+        "byteLength": 15964,
+        "tokenEstimate": 3991,
+        "elementCount": 46
+      },
+      "level4ScreenshotBase64": {
+        "charLength": 80563,
+        "byteLength": 80563,
+        "tokenEstimate": 20141
+      },
+      "structuredExtraction": {
+        "text": {
+          "charLength": 1555,
+          "byteLength": 1557,
+          "tokenEstimate": 389,
+          "savingsVsRawPct": 83.7
+        },
+        "tables": {
+          "charLength": 1503,
+          "byteLength": 1503,
+          "tokenEstimate": 376,
+          "savingsVsRawPct": 84.3
+        },
+        "links": {
+          "charLength": 1202,
+          "byteLength": 1202,
+          "tokenEstimate": 301,
+          "savingsVsRawPct": 87.4
+        },
+        "forms": {
+          "charLength": 2754,
+          "byteLength": 2754,
+          "tokenEstimate": 689,
+          "savingsVsRawPct": 71.2
+        },
+        "metadata": {
+          "charLength": 1494,
+          "byteLength": 1498,
+          "tokenEstimate": 374,
+          "savingsVsRawPct": 84.4
+        }
+      },
+      "directEvaluate": {
+        "charLength": 40,
+        "byteLength": 42,
+        "tokenEstimate": 10,
+        "observationOverheadTokens": 0
+      },
+      "tokenBudgetEnforced": {
+        "maxTokensParam": 50,
+        "charLength": 237,
+        "byteLength": 237,
+        "tokenEstimate": 60,
+        "truncated": true,
+        "tokenBudgetMeta": {
+          "maxTokens": 50,
+          "originalElements": 20,
+          "retainedElements": 3,
+          "estimatedTokens": 60
+        }
+      }
+    }
+  }
+}

@@ -143,6 +143,30 @@ export class ObservationEngine {
     result.elementCount = elements.length;
     result.compact = this.formatCompact(elements);
 
+    // Token Budget Enforcement & Dynamic Compaction
+    const maxTokens = options.maxTokens !== undefined ? Number(options.maxTokens) : null;
+    if (maxTokens && maxTokens > 0) {
+      const estTokens = Math.ceil(result.compact.length / 4);
+      if (estTokens > maxTokens && result.elements.length > 0) {
+        const kept = [...result.elements];
+        while (kept.length > 0 && Math.ceil(this.formatCompact(kept).length / 4) > maxTokens) {
+          kept.pop();
+        }
+        const truncatedCount = result.elements.length - kept.length;
+        result.elements = kept;
+        result.elementCount = kept.length;
+        result.compact = (kept.length > 0 ? this.formatCompact(kept) + '\n' : '') +
+          `[... truncated ${truncatedCount} elements to meet token budget of ${maxTokens} tokens]`;
+        result.truncated = true;
+        result.tokenBudget = {
+          maxTokens,
+          originalElements: elements.length,
+          retainedElements: kept.length,
+          estimatedTokens: Math.ceil(result.compact.length / 4)
+        };
+      }
+    }
+
     // LEVEL 4: Screenshot capture
     if (level === ProgressiveLevel.SCREENSHOT || options.includeScreenshot) {
       const format = options.screenshotFormat === 'png' ? 'png' : 'jpeg';
