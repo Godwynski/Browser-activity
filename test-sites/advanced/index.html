@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Browser Control — Advanced Lab</title>
+  <meta name="description" content="Test bench for extraction, dialogs, downloads, and popups.">
+  <link rel="canonical" href="http://localhost:8080/test-sites/advanced/index.html">
+  <meta property="og:title" content="Advanced Lab OG Title">
+  <meta property="og:description" content="OpenGraph Description for Advanced Lab">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Advanced Lab",
+    "description": "JSON-LD schema metadata for test lab"
+  }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; color: #222; }
+    h1 { color: #1e3a8a; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    th { background: #f1f5f9; }
+    .aria-grid { display: table; width: 100%; border: 1px solid #94a3b8; }
+    .aria-row { display: table-row; }
+    .aria-header { display: table-cell; font-weight: bold; background: #e2e8f0; padding: 6px 10px; border-bottom: 2px solid #64748b; }
+    .aria-cell { display: table-cell; padding: 6px 10px; border-bottom: 1px solid #cbd5e1; }
+    .section-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 1.5rem; margin-bottom: 2rem; background: #fafafa; }
+    button { padding: 8px 16px; margin: 4px; cursor: pointer; border-radius: 4px; border: 1px solid #94a3b8; background: #fff; }
+    button:hover { background: #e2e8f0; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h1>Universal Browser Control — Advanced Lab</h1>
+  <p id="main-summary">A comprehensive test bench designed to verify structured data extraction, dialog lifecycle, downloads, and popup handling.</p>
+
+  <!-- Section 1: Structured Articles and Text -->
+  <section class="section-box" id="article-section">
+    <h2>Section 1: Articles and Structured Text</h2>
+    <p>Modern browser agents require high-fidelity content extraction without token bloat.</p>
+    <blockquote>Knowledge is of no value unless you put it into practice.</blockquote>
+    <h3>Key Advantages</h3>
+    <ul>
+      <li>Zero-token DOM stripping</li>
+      <li>Automatic table reconstruction</li>
+      <li>Event-driven dialog handling</li>
+    </ul>
+    <pre><code>function runtimeEngine() { return "operational"; }</code></pre>
+  </section>
+
+  <!-- Section 2: Tables (Native and ARIA) -->
+  <section class="section-box" id="tables-section">
+    <h2>Section 2: Data Tables</h2>
+
+    <h3>Native HTML Products Table</h3>
+    <table id="products-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SKU-001</td>
+          <td>Neural Engine Core</td>
+          <td>Processors</td>
+          <td>$499.00</td>
+          <td>In Stock</td>
+        </tr>
+        <tr>
+          <td>SKU-002</td>
+          <td>Quantum Bridge Gateway</td>
+          <td>Networking</td>
+          <td>$1,250.00</td>
+          <td>Backordered</td>
+        </tr>
+        <tr>
+          <td>SKU-003</td>
+          <td>Synthetic Memory Array</td>
+          <td>Storage</td>
+          <td>$280.00</td>
+          <td>In Stock</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>ARIA Grid Table</h3>
+    <div role="grid" id="aria-metrics-grid" class="aria-grid" aria-label="System Metrics">
+      <div role="row" class="aria-row">
+        <div role="columnheader" class="aria-header">Metric</div>
+        <div role="columnheader" class="aria-header">Value</div>
+        <div role="columnheader" class="aria-header">Threshold</div>
+      </div>
+      <div role="row" class="aria-row">
+        <div role="gridcell" class="aria-cell">CPU Utilization</div>
+        <div role="gridcell" class="aria-cell">14.2%</div>
+        <div role="gridcell" class="aria-cell">&lt; 85%</div>
+      </div>
+      <div role="row" class="aria-row">
+        <div role="gridcell" class="aria-cell">Memory Overhead</div>
+        <div role="gridcell" class="aria-cell">128 MB</div>
+        <div role="gridcell" class="aria-cell">&lt; 512 MB</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Links -->
+  <section class="section-box" id="links-section">
+    <h2>Section 3: Hyperlinks</h2>
+    <div id="links-container">
+      <a href="/docs/getting-started" id="link-docs">Internal Documentation</a>
+      <a href="/dashboard/settings" id="link-settings">User Settings</a>
+      <a href="https://example.com/external-spec" target="_blank" rel="noopener noreferrer" id="link-external">External Specification</a>
+      <a href="https://github.com/Godwynski/Browser-activity" target="_blank" id="link-github">GitHub Repository</a>
+    </div>
+  </section>
+
+  <!-- Section 4: Forms -->
+  <section class="section-box" id="forms-section">
+    <h2>Section 4: Forms & Input Schemas</h2>
+
+    <form id="registration-form" action="/api/register" method="POST">
+      <div class="form-group">
+        <label for="reg-username">Username</label>
+        <input type="text" id="reg-username" name="username" placeholder="Enter username" required value="agent_operator">
+      </div>
+
+      <div class="form-group">
+        <label for="reg-email">Email Address</label>
+        <input type="email" id="reg-email" name="email" placeholder="user@domain.com" required value="operator@cyber.local">
+      </div>
+
+      <div class="form-group">
+        <label for="reg-tier">Subscription Tier</label>
+        <select id="reg-tier" name="tier">
+          <option value="free">Free Tier</option>
+          <option value="pro" selected>Professional</option>
+          <option value="enterprise">Enterprise Core</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-bio">Operator Bio</label>
+        <textarea id="reg-bio" name="bio" rows="3">Autonomous agent controller.</textarea>
+      </div>
+
+      <div class="form-group">
+        <label><input type="checkbox" id="reg-newsletter" name="newsletter" checked> Subscribe to system telemetry updates</label>
+      </div>
+
+      <div class="form-group">
+        <label><input type="radio" name="mode" value="auto" checked> Automatic</label>
+        <label><input type="radio" name="mode" value="manual"> Manual</label>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-avatar">Upload Profile Picture</label>
+        <input type="file" id="reg-avatar" name="avatar">
+      </div>
+
+      <button type="submit" id="btn-submit-form">Create Account</button>
+    </form>
+
+    <!-- Orphan input outside form -->
+    <div class="form-group" style="margin-top: 1.5rem;">
+      <label for="orphan-search">Standalone Quick Filter</label>
+      <input type="text" id="orphan-search" placeholder="Type to filter..." value="initial query">
+    </div>
+  </section>
+
+  <!-- Section 5: Dialog Triggers -->
+  <section class="section-box" id="dialogs-section">
+    <h2>Section 5: JavaScript Dialogs</h2>
+    <p>Trigger modal dialogs to verify automated acceptance, dismissal, and response capture.</p>
+    <button id="btn-trigger-alert" onclick="alert('Notification: System state synchronized successfully.');">Trigger Alert</button>
+    <button id="btn-trigger-confirm" onclick="const res = confirm('Proceed with parameter recalibration?'); document.getElementById('dialog-output').textContent = res ? 'confirmed' : 'cancelled';">Trigger Confirm</button>
+    <button id="btn-trigger-prompt" onclick="const res = prompt('Enter validation passcode:', 'SYS-9941'); document.getElementById('dialog-output').textContent = res || 'none';">Trigger Prompt</button>
+    <div style="margin-top: 10px;">
+      Dialog Result: <strong id="dialog-output">none</strong>
+    </div>
+  </section>
+
+  <!-- Section 6: Popups and New Windows -->
+  <section class="section-box" id="popups-section">
+    <h2>Section 6: Window & Popup Lifecycle</h2>
+    <a href="about:blank" target="_blank" id="btn-open-popup-link">Open Window via target="_blank"</a>
+    <button id="btn-open-popup-js" onclick="window.open('about:blank', '_blank', 'width=600,height=400');">Open Window via JS</button>
+  </section>
+
+  <!-- Section 7: File Downloads -->
+  <section class="section-box" id="downloads-section">
+    <h2>Section 7: Browser Downloads</h2>
+    <button id="btn-start-download" onclick="triggerFileDownload();">Download Telemetry Report</button>
+    <div id="download-status" style="font-size: 0.9rem; color: #64748b; margin-top: 6px;"></div>
+
+    <script>
+      function triggerFileDownload() {
+        const content = "System Telemetry Report\nTimestamp: " + new Date().toISOString() + "\nStatus: 100% Operational\n";
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "system-telemetry.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        document.getElementById('download-status').textContent = 'Download initiated: system-telemetry.txt';
+      }
+    </script>
+  </section>
+</body>
+</html>

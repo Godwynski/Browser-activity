@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Iframe Hierarchy Test Bench</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    iframe { border: 1px solid #94a3b8; border-radius: 4px; margin: 10px 0; width: 100%; height: 180px; }
+  </style>
+</head>
+<body>
+  <h1>Iframe Hierarchy Test Bench</h1>
+  <p>Tests observation traversal across multiple iframes.</p>
+
+  <section id="outer-iframe-section">
+    <h2>Frame 1 (Primary Child)</h2>
+    <iframe id="frame-1" srcdoc="
+      <!DOCTYPE html>
+      <html>
+        <body style='font-family:sans-serif;padding:10px;'>
+          <h3>Inside Frame 1</h3>
+          <input id='f1-input' type='text' placeholder='Frame 1 input' />
+          <button id='f1-btn'>Frame 1 Action</button>
+        </body>
+      </html>
+    "></iframe>
+  </section>
+
+  <section id="nested-iframe-section">
+    <h2>Frame 2 (Nested Iframe)</h2>
+    <iframe id="frame-2" srcdoc="
+      <!DOCTYPE html>
+      <html>
+        <body style='font-family:sans-serif;padding:10px;'>
+          <h3>Inside Frame 2</h3>
+          <iframe id='nested-frame-3' srcdoc='
+            <!DOCTYPE html>
+            <html>
+              <body style=&quot;font-family:sans-serif;padding:10px;&quot;>
+                <h4>Inside Nested Frame 3</h4>
+                <button id=&quot;f3-btn&quot;>Nested Frame 3 Button</button>
+              </body>
+            </html>
+          ' style='width:90%;height:100px;border:1px dashed #64748b;'></iframe>
+        </body>
+      </html>
+    "></iframe>
+  </section>
+</body>
+</html>

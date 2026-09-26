@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shadow DOM Test Bench</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .host { border: 2px dashed #6366f1; padding: 15px; margin: 15px 0; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Shadow DOM Test Bench</h1>
+  <p>Tests open and nested shadow roots for the Progressive Observation Engine.</p>
+
+  <div id="open-shadow-host" class="host">
+    <span>Light DOM fallback</span>
+  </div>
+
+  <div id="nested-shadow-host" class="host">
+    <span>Nested fallback</span>
+  </div>
+
+  <script>
+    // 1. Single Open Shadow DOM
+    const host1 = document.getElementById('open-shadow-host');
+    const root1 = host1.attachShadow({ mode: 'open' });
+    root1.innerHTML = `
+      <style>button { background: #4f46e5; color: white; padding: 8px 16px; border-radius: 4px; }</style>
+      <div id="shadow-container">
+        <h3>Shadow Root 1</h3>
+        <input id="input-inside-shadow" type="text" placeholder="Shadow input field" />
+        <button id="btn-inside-shadow">Click Shadow 1</button>
+      </div>
+    `;
+
+    // 2. Nested Open Shadow DOM
+    const host2 = document.getElementById('nested-shadow-host');
+    const root2 = host2.attachShadow({ mode: 'open' });
+    root2.innerHTML = `
+      <div id="parent-shadow-container">
+        <h3>Parent Shadow Root</h3>
+        <button id="btn-parent-shadow">Parent Button</button>
+        <div id="inner-shadow-host" style="margin-top: 10px; border: 1px solid #ddd; padding: 10px;"></div>
+      </div>
+    `;
+
+    const innerHost = root2.getElementById('inner-shadow-host');
+    const innerRoot = innerHost.attachShadow({ mode: 'open' });
+    innerRoot.innerHTML = `
+      <h4>Nested Child Shadow Root</h4>
+      <input id="input-nested-shadow" type="text" placeholder="Deeply nested input" />
+      <button id="btn-nested-shadow">Deep Nested Button</button>
+    `;
+  </script>
+</body>
+</html>

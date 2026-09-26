@@ -1,17 +1,36 @@
 {
   "name": "browser-activity",
-  "version": "2.0.0",
-  "description": "Antigravity Academic Command Center & STI ELMS Automation Workspace",
+  "version": "3.0.0",
+  "description": "Universal Browser Control Runtime — extensible browser-control layer for AI agents via MCP",
   "type": "module",
   "scripts": {
+    "test": "npm --prefix brave-mcp test",
+    "test:core": "node tests/core/test-errors.js && node tests/core/test-base-adapter.js && node tests/core/test-browser-runtime.js",
+    "test:core:errors": "node tests/core/test-errors.js",
+    "test:core:adapter": "node tests/core/test-base-adapter.js",
+    "test:core:runtime": "node tests/core/test-browser-runtime.js",
+    "test:adapters": "node tests/adapters/test-chromium.js && node tests/adapters/test-bidi.js && node tests/adapters/test-extension.js",
+    "test:bidi": "node tests/adapters/test-bidi.js",
+    "test:extension": "node tests/adapters/test-extension.js",
+    "test:observation": "node tests/observation/test-observation.js",
+    "test:actions": "node tests/actions/test-actions.js",
+    "test:extraction": "node tests/extraction/test-advanced.js",
+    "test:mcp": "node tests/mcp/test-mcp-server.js",
+    "test:cli": "node tests/cli/test-cli.js",
+    "test:all": "npm run test:core && npm run test:adapters && npm run test:observation && npm run test:actions && npm run test:extraction && npm run test:mcp && npm run test:cli && npm --prefix brave-mcp run test:all",
     "audit": "node brave-mcp/scripts/cdp/audit-workspace.js",
     "elms:list": "node brave-mcp/scripts/elms/list-assignments.js",
     "elms:sync": "node brave-mcp/scripts/elms/sync-cache.js",
-    "lab:cube": "python courses/Computer_Graphics_Programming/assignments/midterm/03_Laboratory_Exercise_1/src/wireframe_cube.py",
-    "telemetry": "node brave-mcp/src/telemetry-server.js",
-    "test": "npm --prefix brave-mcp test"
+    "telemetry": "node brave-mcp/src/telemetry-server.js"
+  },
+  "bin": {
+    "browser-agent": "bin/browser-agent.js",
+    "agy-browser": "bin/browser-agent.js"
   },
   "dependencies": {
-    "@aws-sdk/client-ec2": "^3.1137.0"
+    "@aws-sdk/client-ec2": "^3.1137.0",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "playwright-core": "^1.50.1",
+    "ws": "^8.21.3"
   }
 }

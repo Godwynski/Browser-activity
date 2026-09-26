@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal Browser Control — Basic Test Site</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; }
+    h1 { color: #333; }
+    h2 { color: #555; border-bottom: 2px solid #ddd; padding-bottom: 6px; margin-top: 30px; }
+    section { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+    label { display: block; margin: 8px 0 4px; font-weight: bold; }
+    input, select, textarea { padding: 6px 10px; border: 1px solid #bbb; border-radius: 4px; font-size: 14px; }
+    button { padding: 8px 18px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin: 4px 2px; }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    .output { margin-top: 12px; padding: 10px; background: #eef4ff; border: 1px solid #c3d9ff; border-radius: 4px; min-height: 20px; font-family: monospace; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+    th { background: #f0f0f0; }
+    .shadow-host { border: 2px dashed #888; padding: 10px; border-radius: 4px; }
+    #toast { position: fixed; bottom: 20px; right: 20px; background: #1d4ed8; color: #fff;
+             padding: 12px 20px; border-radius: 6px; display: none; z-index: 999; }
+  </style>
+</head>
+<body>
+
+<h1 id="page-title">Universal Browser Control — Basic Test Site</h1>
+<p id="page-description">
+  This page exercises the key browser-control primitives needed by the runtime.
+  Each section corresponds to a specific capability that will be verified in Phase 3 and Phase 4.
+</p>
+
+<!-- =========================================================
+     SECTION 1 — FORM INPUTS
+     Exercises: type, select, checkbox, radio, textarea, submit
+     ========================================================= -->
+<section id="section-form">
+  <h2>1. Form Inputs</h2>
+  <form id="main-form" autocomplete="off">
+    <label for="input-text">Text Input</label>
+    <input type="text" id="input-text" name="username" placeholder="Enter username" />
+
+    <label for="input-email">Email Input</label>
+    <input type="email" id="input-email" name="email" placeholder="user@example.com" />
+
+    <label for="input-password">Password Input</label>
+    <input type="password" id="input-password" name="password" placeholder="Password" />
+
+    <label for="input-number">Number Input</label>
+    <input type="number" id="input-number" name="quantity" min="1" max="100" value="1" />
+
+    <label for="select-role">Select (Dropdown)</label>
+    <select id="select-role" name="role">
+      <option value="">-- Choose Role --</option>
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+      <option value="guest">Guest</option>
+    </select>
+
+    <label for="textarea-notes">Textarea</label>
+    <textarea id="textarea-notes" name="notes" rows="3" placeholder="Enter notes..."></textarea>
+
+    <label>
+      <input type="checkbox" id="checkbox-agree" name="agree" />
+      I agree to the terms
+    </label>
+
+    <fieldset style="border:1px solid #ddd;padding:10px;border-radius:4px;">
+      <legend>Radio Group — Priority</legend>
+      <label><input type="radio" id="radio-low"  name="priority" value="low"  /> Low</label>
+      <label><input type="radio" id="radio-med"  name="priority" value="med"  /> Medium</label>
+      <label><input type="radio" id="radio-high" name="priority" value="high" /> High</label>
+    </fieldset>
+
+    <label for="input-file">File Upload</label>
+    <input type="file" id="input-file" name="attachment" />
+
+    <br /><br />
+    <button type="button" id="btn-submit-form">Submit Form</button>
+    <button type="reset" id="btn-reset-form">Reset</button>
+  </form>
+  <div id="form-output" class="output">Form not yet submitted.</div>
+</section>
+
+<!-- =========================================================
+     SECTION 2 — DYNAMIC SPA STATE
+     Exercises: DOM mutation detection, new elements appearing
+     ========================================================= -->
+<section id="section-spa">
+  <h2>2. Dynamic SPA State</h2>
+  <button id="btn-mutate">Mutate DOM</button>
+  <button id="btn-add-item">Add List Item</button>
+  <button id="btn-clear-list">Clear List</button>
+  <div id="spa-container">
+    <p id="spa-status">Initial state — no mutations yet.</p>
+  </div>
+  <ul id="dynamic-list"></ul>
+  <div id="spa-output" class="output">Waiting for actions...</div>
+</section>
+
+<!-- =========================================================
+     SECTION 3 — NAVIGATION LINKS
+     Exercises: link extraction, click navigation
+     ========================================================= -->
+<section id="section-links">
+  <h2>3. Navigation Links</h2>
+  <nav id="nav-links">
+    <a href="https://example.com" id="link-example">Example.com</a> |
+    <a href="https://playwright.dev" id="link-playwright">Playwright Docs</a> |
+    <a href="#section-form" id="link-anchor">Jump to Form</a> |
+    <a href="https://github.com" id="link-github" target="_blank">GitHub (new tab)</a>
+  </nav>
+</section>
+
+<!-- =========================================================
+     SECTION 4 — TABLE
+     Exercises: table extraction
+     ========================================================= -->
+<section id="section-table">
+  <h2>4. Data Table</h2>
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Alice</td><td>Admin</td><td>Active</td></tr>
+      <tr><td>2</td><td>Bob</td><td>User</td><td>Inactive</td></tr>
+      <tr><td>3</td><td>Carol</td><td>Guest</td><td>Active</td></tr>
+      <tr><td>4</td><td>Dave</td><td>User</td><td>Pending</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- =========================================================
+     SECTION 5 — IFRAME
+     Exercises: same-origin iframe element traversal
+     ========================================================= -->
+<section id="section-iframe">
+  <h2>5. Embedded Iframe</h2>
+  <iframe
+    id="test-iframe"
+    title="Test Iframe"
+    srcdoc="
+      <!DOCTYPE html>
+      <html>
+        <body style='font-family:sans-serif;padding:10px;'>
+          <p>Inside same-origin iframe</p>
+          <input id='iframe-input' type='text' placeholder='Type in iframe' />
+          <button id='iframe-btn'>Iframe Button</button>
+          <div id='iframe-output'>Ready</div>
+          <script>
+            document.getElementById('iframe-btn').onclick = function() {
+              var val = document.getElementById('iframe-input').value || '(empty)';
+              document.getElementById('iframe-output').innerText = 'Clicked! Input was: ' + val;
+            };
+          </script>
+        </body>
+      </html>
+    "
+    width="100%"
+    height="140"
+    style="border:1px solid #ddd;border-radius:4px;"
+  ></iframe>
+</section>
+
+<!-- =========================================================
+     SECTION 6 — SHADOW DOM
+     Exercises: open shadow root traversal
+     ========================================================= -->
+<section id="section-shadow">
+  <h2>6. Shadow DOM</h2>
+  <div id="shadow-host" class="shadow-host">
+    <span style="color:#888;">(Shadow content will appear here after page load)</span>
+  </div>
+  <div id="shadow-output" class="output">Shadow DOM not yet interacted with.</div>
+</section>
+
+<!-- =========================================================
+     SECTION 7 — MODAL / DIALOG
+     Exercises: dialog detection and modal overlay
+     ========================================================= -->
+<section id="section-modal">
+  <h2>7. Modal Dialog</h2>
+  <button id="btn-open-modal">Open Modal</button>
+  <button id="btn-alert">Trigger alert()</button>
+  <button id="btn-confirm">Trigger confirm()</button>
+  <div id="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:center;">
+    <div role="dialog" aria-modal="true" aria-labelledby="modal-title" style="background:#fff;padding:30px;border-radius:8px;max-width:400px;width:90%;">
+      <h3 id="modal-title">Confirmation Required</h3>
+      <p id="modal-message">Are you sure you want to proceed?</p>
+      <input id="modal-input" type="text" placeholder="Enter reason..." style="width:100%;margin:10px 0;box-sizing:border-box;" />
+      <button id="btn-modal-confirm">Confirm</button>
+      <button id="btn-modal-cancel">Cancel</button>
+    </div>
+  </div>
+  <div id="modal-output" class="output">No modal interaction yet.</div>
+</section>
+
+<!-- =========================================================
+     SECTION 8 — MULTI-STEP FLOW
+     Exercises: sequential actions, state transitions, waitFor
+     ========================================================= -->
+<section id="section-steps">
+  <h2>8. Multi-Step Flow</h2>
+  <div id="step-indicator" style="font-weight:bold;margin-bottom:10px;">Step: 1 of 3</div>
+  <div id="step-1">
+    <p>Fill in your name to proceed.</p>
+    <input id="step-input-name" type="text" placeholder="Your name" />
+    <button id="btn-step-next" disabled>Next Step →</button>
+  </div>
+  <div id="step-2" style="display:none;">
+    <p>Choose a category.</p>
+    <select id="step-select-category">
+      <option value="">-- Select --</option>
+      <option value="bug">Bug Report</option>
+      <option value="feature">Feature Request</option>
+      <option value="question">Question</option>
+    </select>
+    <button id="btn-step-submit">Submit →</button>
+  </div>
+  <div id="step-3" style="display:none;">
+    <p id="step-success-msg">✅ Submitted successfully!</p>
+  </div>
+  <div id="step-output" class="output">Waiting for step actions...</div>
+</section>
+
+<!-- =========================================================
+     SECTION 9 — SCROLL & HOVER
+     Exercises: scroll, hover, tooltip reveal
+     ========================================================= -->
+<section id="section-scroll">
+  <h2>9. Scroll & Hover</h2>
+  <div id="scroll-box" style="height:120px;overflow-y:auto;border:1px solid #ccc;padding:10px;border-radius:4px;">
+    <p>Line 1 — top of scroll container</p>
+    <p>Line 2</p>
+    <p>Line 3</p>
+    <p>Line 4</p>
+    <p>Line 5</p>
+    <p>Line 6</p>
+    <p id="scroll-target">Line 7 — scroll target</p>
+    <p>Line 8</p>
+    <p>Line 9 — bottom</p>
+  </div>
+  <div style="margin-top:10px;position:relative;display:inline-block;">
+    <button id="btn-hover" aria-describedby="tooltip-text">Hover for Tooltip</button>
+    <span id="tooltip-text" role="tooltip" style="display:none;position:absolute;top:-30px;left:0;background:#333;color:#fff;padding:4px 8px;border-radius:4px;white-space:nowrap;">
+      This is a tooltip!
+    </span>
+  </div>
+</section>
+
+<!-- =========================================================
+     SECTION 10 — DISABLED & LOADING STATES
+     Exercises: waitFor(element_enabled), state change detection
+     ========================================================= -->
+<section id="section-loading">
+  <h2>10. Disabled & Loading States</h2>
+  <button id="btn-trigger-load">Start Loading (2s)</button>
+  <button id="btn-delayed-action" disabled>Action (enabled after load)</button>
+  <div id="loading-spinner" style="display:none;">⏳ Loading...</div>
+  <div id="loading-output" class="output">Not started.</div>
+</section>
+
+<!-- =========================================================
+     SECTION 11 — CONTENTEDITABLE
+     Exercises: type into contenteditable div
+     ========================================================= -->
+<section id="section-contenteditable">
+  <h2>11. ContentEditable</h2>
+  <div id="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Rich Text Editor"
+       style="border:1px solid #bbb;padding:10px;min-height:60px;border-radius:4px;background:#fff;">
+    Click here and type something...
+  </div>
+  <button id="btn-read-editor">Read Editor Content</button>
+  <div id="editor-output" class="output">Editor content will appear here.</div>
+</section>
+
+<!-- =========================================================
+     STATUS BAR
+     ========================================================= -->
+<div id="status-bar" style="position:sticky;bottom:0;background:#1e293b;color:#94a3b8;padding:8px 16px;font-family:monospace;font-size:12px;">
+  Status: <span id="status-text">ready</span> | URL: <span id="current-url"></span>
+</div>
+
+<div id="toast"></div>
+
+<!-- =========================================================
+     PAGE SCRIPTS
+     ========================================================= -->
+<script>
+  // Status bar
+  document.getElementById('current-url').textContent = window.location.href;
+
+  function setStatus(msg) {
+    document.getElementById('status-text').textContent = msg;
+  }
+
+  function showToast(msg, durationMs = 2000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, durationMs);
+  }
+
+  // -----------------------------------------------------------
+  // Section 1 — Form
+  // -----------------------------------------------------------
+  document.getElementById('btn-submit-form').onclick = function () {
+    const data = {
+      username: document.getElementById('input-text').value,
+      email: document.getElementById('input-email').value,
+      role: document.getElementById('select-role').value,
+      notes: document.getElementById('textarea-notes').value,
+      agreed: document.getElementById('checkbox-agree').checked,
+      priority: document.querySelector('input[name="priority"]:checked')?.value || 'none',
+      file: document.getElementById('input-file').files[0]?.name || 'none'
+    };
+    document.getElementById('form-output').textContent = 'Submitted: ' + JSON.stringify(data);
+    setStatus('form submitted');
+  };
+
+  // -----------------------------------------------------------
+  // Section 2 — SPA
+  // -----------------------------------------------------------
+  let mutated = false;
+  document.getElementById('btn-mutate').onclick = function () {
+    const container = document.getElementById('spa-container');
+    if (!mutated) {
+      container.innerHTML = '<p id="spa-new-content">DOM mutated — new content injected by SPA.</p><button id="btn-spa-extra">Extra Button</button>';
+      document.getElementById('spa-output').textContent = 'Mutation applied.';
+      mutated = true;
+    } else {
+      container.innerHTML = '<p id="spa-status">Reverted to initial state.</p>';
+      document.getElementById('spa-output').textContent = 'Mutation reverted.';
+      mutated = false;
+    }
+    setStatus('dom mutated');
+  };
+
+  let itemCounter = 0;
+  document.getElementById('btn-add-item').onclick = function () {
+    itemCounter++;
+    const li = document.createElement('li');
+    li.id = 'list-item-' + itemCounter;
+    li.textContent = 'Item ' + itemCounter;
+    document.getElementById('dynamic-list').appendChild(li);
+    document.getElementById('spa-output').textContent = 'Added item ' + itemCounter;
+  };
+
+  document.getElementById('btn-clear-list').onclick = function () {
+    document.getElementById('dynamic-list').innerHTML = '';
+    itemCounter = 0;
+    document.getElementById('spa-output').textContent = 'List cleared.';
+  };
+
+  // -----------------------------------------------------------
+  // Section 5 — Shadow DOM
+  // -----------------------------------------------------------
+  (function attachShadow() {
+    const host = document.getElementById('shadow-host');
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `
+      <style>
+        :host { display: block; }
+        input { padding: 6px; border: 1px solid #888; border-radius: 3px; }
+        button { padding: 6px 14px; background: #7c3aed; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
+      </style>
+      <p>Inside open shadow root</p>
+      <input id="shadow-input" type="text" placeholder="Type in shadow DOM" />
+      <button id="shadow-btn">Shadow Button</button>
+      <div id="shadow-output">Ready</div>
+    `;
+    root.getElementById('shadow-btn').onclick = function () {
+      const val = root.getElementById('shadow-input').value || '(empty)';
+      root.getElementById('shadow-output').textContent = 'Shadow clicked! Value: ' + val;
+      document.getElementById('shadow-output').textContent = 'Shadow interaction recorded: ' + val;
+    };
+  })();
+
+  // -----------------------------------------------------------
+  // Section 7 — Modal
+  // -----------------------------------------------------------
+  const modalOverlay = document.getElementById('modal-overlay');
+
+  document.getElementById('btn-open-modal').onclick = function () {
+    modalOverlay.style.display = 'flex';
+    document.getElementById('modal-output').textContent = 'Modal opened.';
+    setStatus('modal open');
+  };
+
+  document.getElementById('btn-modal-confirm').onclick = function () {
+    const reason = document.getElementById('modal-input').value;
+    modalOverlay.style.display = 'none';
+    document.getElementById('modal-output').textContent = 'Confirmed with reason: ' + (reason || '(none)');
+    setStatus('modal confirmed');
+  };
+
+  document.getElementById('btn-modal-cancel').onclick = function () {
+    modalOverlay.style.display = 'none';
+    document.getElementById('modal-output').textContent = 'Cancelled.';
+    setStatus('modal cancelled');
+  };
+
+  document.getElementById('btn-alert').onclick = function () {
+    alert('This is an alert dialog.');
+    document.getElementById('modal-output').textContent = 'Alert dismissed.';
+  };
+
+  document.getElementById('btn-confirm').onclick = function () {
+    const result = confirm('Do you confirm?');
+    document.getElementById('modal-output').textContent = 'Confirm result: ' + result;
+  };
+
+  // -----------------------------------------------------------
+  // Section 8 — Multi-Step Flow
+  // -----------------------------------------------------------
+  const stepNextBtn = document.getElementById('btn-step-next');
+  const stepNameInput = document.getElementById('step-input-name');
+
+  stepNameInput.addEventListener('input', function () {
+    stepNextBtn.disabled = !this.value.trim();
+  });
+
+  stepNextBtn.onclick = function () {
+    document.getElementById('step-1').style.display = 'none';
+    document.getElementById('step-2').style.display = 'block';
+    document.getElementById('step-indicator').textContent = 'Step: 2 of 3';
+    document.getElementById('step-output').textContent = 'Moved to step 2.';
+  };
+
+  document.getElementById('btn-step-submit').onclick = function () {
+    const cat = document.getElementById('step-select-category').value;
+    if (!cat) {
+      document.getElementById('step-output').textContent = 'Select a category first.';
+      return;
+    }
+    document.getElementById('step-2').style.display = 'none';
+    document.getElementById('step-3').style.display = 'block';
+    document.getElementById('step-indicator').textContent = 'Step: 3 of 3';
+    document.getElementById('step-success-msg').textContent = '✅ Submitted! Category: ' + cat + ' | Name: ' + stepNameInput.value;
+    document.getElementById('step-output').textContent = 'Flow complete.';
+    setStatus('multi-step complete');
+  };
+
+  // -----------------------------------------------------------
+  // Section 9 — Hover
+  // -----------------------------------------------------------
+  const hoverBtn = document.getElementById('btn-hover');
+  const tooltip = document.getElementById('tooltip-text');
+  hoverBtn.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
+  hoverBtn.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  // -----------------------------------------------------------
+  // Section 10 — Loading States
+  // -----------------------------------------------------------
+  document.getElementById('btn-trigger-load').onclick = function () {
+    const spinner = document.getElementById('loading-spinner');
+    const btn = document.getElementById('btn-delayed-action');
+    const out = document.getElementById('loading-output');
+    out.textContent = 'Loading started...';
+    spinner.style.display = 'inline';
+    btn.disabled = true;
+    setTimeout(() => {
+      spinner.style.display = 'none';
+      btn.disabled = false;
+      out.textContent = 'Loading complete. Button is now enabled.';
+      setStatus('loading complete');
+    }, 2000);
+  };
+
+  document.getElementById('btn-delayed-action').onclick = function () {
+    document.getElementById('loading-output').textContent = 'Delayed action executed!';
+    setStatus('delayed action done');
+  };
+
+  // -----------------------------------------------------------
+  // Section 11 — ContentEditable
+  // -----------------------------------------------------------
+  document.getElementById('btn-read-editor').onclick = function () {
+    const content = document.getElementById('rich-editor').textContent;
+    document.getElementById('editor-output').textContent = 'Content: ' + content;
+  };
+</script>
+
+</body>
+</html>

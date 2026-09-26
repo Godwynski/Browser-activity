@@ -1,0 +1,191 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-09-26",
+  "phase": {
+    "current": "phase-9",
+    "status": "pending"
+  },
+  "phases": {
+    "phase-0": {
+      "name": "Repository Audit",
+      "status": "complete",
+      "completedAt": "2026-09-26",
+      "notes": "Full audit report produced. No source files modified."
+    },
+    "phase-1": {
+      "name": "Architecture Foundation",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "project-state-initialized":           "PASS",
+        "base-adapter-interface":              "PASS",
+        "browser-runtime-core":               "PASS",
+        "standard-error-types":               "PASS",
+        "architecture-documentation":         "PASS",
+        "interface-contract-tests":           "PASS",
+        "basic-test-site-created":            "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-2": {
+      "name": "Chromium Adapter",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "chromium-adapter-implemented":       "PASS",
+        "attach-mode-cdp-support":            "PASS",
+        "managed-mode-support":               "PASS",
+        "browser-detection-engine":           "PASS",
+        "brave-verified":                     "PASS (attach mode, port 9222)",
+        "chrome-verified":                    "PASS (managed headless mode)",
+        "edge-verified":                      "PASS (managed headless mode)",
+        "tab-management-contract":            "PASS",
+        "navigation-contract":                "PASS",
+        "javascript-evaluation":              "PASS",
+        "screenshot-capture":                 "PASS",
+        "error-wrapping-and-diagnostics":     "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-3": {
+      "name": "Observation Engine",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "progressive-levels-0-to-4":          "PASS",
+        "compact-1-line-format":              "PASS",
+        "server-side-element-registry":       "PASS",
+        "candidate-fingerprinting":           "PASS",
+        "targeted-semantic-query-inspection": "PASS",
+        "scoped-container-inspection":        "PASS",
+        "filter-modes-interactive-inputs-buttons": "PASS",
+        "stale-ref-automatic-recovery":       "PASS",
+        "ambiguous-target-rejection":         "PASS",
+        "stale-ref-zero-match-rejection":     "PASS",
+        "open-shadow-dom-traversal":          "PASS",
+        "nested-shadow-roots-piercing":       "PASS",
+        "same-origin-iframe-traversal":       "PASS",
+        "nested-iframe-traversal":            "PASS",
+        "dedicated-shadow-dom-test-bench":    "PASS",
+        "dedicated-iframe-test-bench":        "PASS",
+        "adapter-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-4": {
+      "name": "Action Engine",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "action-primitives-click-type-press-scroll-hover-select-upload": "PASS",
+        "event-driven-wait-system":           "PASS",
+        "evidence-grounded-action-receipt":   "PASS",
+        "multi-action-batch-execution":       "PASS",
+        "element-ref-resolution-and-stale-recovery": "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-5": {
+      "name": "Extraction & Advanced Features",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "text-and-markdown-extraction":       "PASS",
+        "table-and-aria-grid-extraction":     "PASS",
+        "link-and-domain-classification":     "PASS",
+        "form-schema-and-orphan-input-extraction": "PASS",
+        "metadata-and-opengraph-and-jsonld-extraction": "PASS",
+        "dialog-management-alert-confirm-prompt": "PASS",
+        "popup-and-new-window-lifecycle-tracking": "PASS",
+        "browser-file-download-interception-and-safety": "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-6": {
+      "name": "Firefox / BiDi Adapter",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "bidi-adapter-implemented":           "PASS",
+        "firefox-detection-engine":           "PASS",
+        "truthful-host-status-reporting":     "PASS (reported NOT_INSTALLED without fabrication)",
+        "interface-contract-completeness":    "PASS",
+        "connection-safety-and-error-wrapping": "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-7": {
+      "name": "Extension Bridge",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "extension-bridge-adapter-implemented": "PASS",
+        "extension-bridge-server-implemented":  "PASS",
+        "json-rpc-communication-protocol":     "PASS",
+        "truthful-capabilities-declaration":    "PASS",
+        "enforced-limitations-error-handling": "PASS",
+        "limitations-documentation":          "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-8": {
+      "name": "Universal MCP & CLI",
+      "status": "complete",
+      "startedAt": "2026-09-26",
+      "completedAt": "2026-09-26",
+      "requirements": {
+        "universal-mcp-server-5-tools":       "PASS",
+        "legacy-brave-aliases-preserved":     "PASS",
+        "centralized-config-management":      "PASS",
+        "cli-binary-and-commands-status-launch-inspect-extract-serve": "PASS",
+        "mcp-protocol-and-actionable-error-formatting": "PASS",
+        "browser-runtime-integration":        "PASS",
+        "existing-brave-mcp-behavior-preserved": "PASS"
+      }
+    },
+    "phase-9":  { "name": "Token Optimization",               "status": "pending" },
+    "phase-10": { "name": "Adversarial Testing",              "status": "pending" },
+    "phase-11": { "name": "Final Audit & Release",            "status": "pending" }
+  },
+  "knownIssues": [
+    "Fixed 350ms sleep in verifier — replaced with event-driven waits in phase-4",
+    "Firefox not installed on host machine — BiDi adapter designed in phase-6, reported NOT_INSTALLED truthfully without fabrication",
+    "telemetry-server.js references COURSES_DIR — scoped to telemetry subsystem only"
+  ],
+  "browsers": {
+    "brave":   { "path": "C:\\Users\\Godwyn\\AppData\\Local\\BraveSoftware\\Brave-Browser\\Application\\brave.exe", "verified": true, "cdpLive": true,  "cdpPort": 9222, "testedMode": "attach" },
+    "chrome":  { "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",                               "verified": true, "cdpLive": false, "cdpPort": null, "testedMode": "managed" },
+    "edge":    { "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",                       "verified": true, "cdpLive": false, "cdpPort": null, "testedMode": "managed" },
+    "firefox": { "status": "NOT_INSTALLED",                                                                          "verified": false, "contractVerified": true },
+    "safari":  { "status": "NOT_SUPPORTED_ON_WINDOWS",                                                               "verified": false }
+  },
+  "testResults": {
+    "brave-mcp/test-connection":    "PASS",
+    "brave-mcp/test-protocol":      "PASS",
+    "brave-mcp/test-tokens":        "PASS (79% reduction)",
+    "brave-mcp/test-battery":       "PASS (14/14)",
+    "tests/core/test-errors":       "PASS (16/16)",
+    "tests/core/test-base-adapter":  "PASS (39/39)",
+    "tests/core/test-browser-runtime": "PASS (42/42)",
+    "tests/adapters/test-chromium":  "PASS (11/11)",
+    "tests/adapters/test-bidi":      "PASS (11/11)",
+    "tests/adapters/test-extension": "PASS (15/15)",
+    "tests/observation/test-observation": "PASS (20/20)",
+    "tests/actions/test-actions": "PASS (16/16)",
+    "tests/extraction/test-advanced": "PASS (20/20)",
+    "tests/mcp/test-mcp-server": "PASS (11/11)",
+    "tests/cli/test-cli": "PASS (6/6)"
+  }
+}
