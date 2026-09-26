@@ -9,7 +9,7 @@ This workspace is the dedicated developer repository for **Evidence-Grounded Bra
 > All STI College coursework, subject folders, assignments, and academic skills have been separated into a dedicated workspace:
 > 👉 **`C:\Users\Godwyn\Documents\Projects\STI-College`**
 > 
-> When working in this repository (`Browser activity`), the AI agent must **never** look for coursework or create assignment files. This repository is strictly for browser infrastructure and web automation engineering.
+
 
 ---
 
@@ -70,7 +70,7 @@ Antigravity controls Brave via the following 6 MCP tools registered in `C:\Users
 
 | Tool | Primary Purpose | Key Parameters |
 | :--- | :--- | :--- |
-| `brave_tabs` | Manage and inspect open tabs | `action` (`list`, `switch`, `new`, `new_window`, `close`, `focus`), `index`, `url` |
+| `brave_tabs` | Manage and inspect open tabs | `action` (`list`, `switch`, `new`, `close`, `focus`), `index`, `url` |
 | `brave_observe` | Extract structured DOM/ARIA state with minimal token footprint | `target` (`agent` / `user`), `scope` (CSS selector), `filter`, `includeScreenshot` |
 | `brave_act` | Perform browser actions (click, type, scroll, hover) | `action`, `ref` (ephemeral ID e.g. `e1`), `text`, `key`, `direction` |
 | `brave_batch_act` | Execute multiple actions sequentially without LLM loops | `actions` (array of action objects), `target` |
@@ -86,8 +86,8 @@ When modifying `brave-mcp`, always run the test battery to verify that protocol 
 ```bash
 cd brave-mcp
 npm test               # Run live CDP diagnostic test
-npm run test:battery   # 14-point critical guarantee test battery
+npm run test:protocol  # MCP stdio protocol contracts test
 npm run test:tokens    # Token reduction & batch action tests
-npm run test:cobrowse  # Window isolation & co-browsing test
+npm run test:battery   # 14-point critical guarantee test battery
 npm run test:all       # Run entire comprehensive test suite
 ```

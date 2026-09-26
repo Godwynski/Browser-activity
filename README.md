@@ -3,15 +3,16 @@
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.6.1-blue.svg)](https://modelcontextprotocol.io/)
 [![Playwright Core](https://img.shields.io/badge/Playwright-1.50.1-green.svg)](https://playwright.dev/)
 [![Brave Browser](https://img.shields.io/badge/Brave-CDP%20Port%209222-orange.svg)](https://brave.com/)
-[![Zero Interruption](https://img.shields.io/badge/Co--Browsing-Isolated%20Window-purple.svg)](#-parallel-co-browsing-zero-interruption)
+[![Zero Interruption](https://img.shields.io/badge/Co--Browsing-Zero%20Interruption-purple.svg)](#1-parallel-co-browsing-zero-interruption)
 
 Direct, evidence-grounded browser control bridge connecting **Antigravity / Gemini** directly to your active **Brave Browser** session via Playwright and the Chrome DevTools Protocol (CDP).
 
 ---
 
 > [!IMPORTANT]
-> ### ⚠️ Academic Coursework Separation Notice
-> **All STI College coursework, subject materials, and academic assignments have been cleanly decoupled from this repository.**
+> **Academic Coursework Separation Notice**
+>
+> All STI College coursework, subject materials, and academic assignments have been cleanly decoupled from this repository.
 > - **Coursework Workspace**: [`C:\Users\Godwyn\Documents\Projects\STI-College`](file:///C:/Users/Godwyn/Documents/Projects/STI-College)
 > - **This Repository (`Browser activity`)**: Dedicated strictly to browser automation infrastructure, the CDP bridge MCP server, launcher utilities, companion extensions, and test suites.
 > - **Global Availability**: The browser MCP server configured here serves the **entire computer globally** via `~/.gemini/config/mcp_config.json`. Any workspace (including `STI-College`) can automate Brave without duplicating code.
@@ -36,23 +37,24 @@ graph TD
         OBS["src/observer.js (Tri-Source Observer)"]
         ACT["src/actions.js (Direct Action Engine)"]
         VER["src/verifier.js (Action Receipts & Diffing)"]
-        TEL["src/telemetry-server.js (WebSocket Daemon)"]
+        TEL["src/telemetry-server.js (WebSocket Daemon - Port 8765)"]
     end
 
     subgraph Brave["Brave Browser (Personal Profile)"]
-        UW["User Window (Personal Tabs, Uninterrupted)"]
-        AW["Agent Window (Dedicated Isolated Co-Browsing)"]
+        UW["User Tabs (Personal Browsing, Uninterrupted)"]
+        AW["Agent Tab / Background Operations"]
         EXT["brave-extension (Floating Mission Control HUD)"]
     end
 
-    AGY <-->|MCP Protocol (stdio)| CMD
+    AGY <-->|MCP Protocol via stdio| CMD
     CMD <--> INDEX
     INDEX --> BROWSER
-    BROWSER <-->|CDP WebSocket ws://localhost:9222| Brave
+    BROWSER <-->|CDP WebSocket port 9222| AW
+    BROWSER -.->|Inspect / Manage| UW
     BROWSER --> OBS
     BROWSER --> ACT
     ACT --> VER
-    TEL <-->|ws://localhost:9223| EXT
+    TEL <-- "ws://localhost:8765" --> EXT
 ```
 
 ---
@@ -78,9 +80,9 @@ graph TD
 - Eliminates fragile minified CSS selectors or fragile XPath trees.
 - References are automatically invalidated upon page navigation to guarantee zero misclicks.
 
-### 6. Token-Optimized Observation (~65% Token Reduction)
+### 6. Token-Optimized Observation (~79% Token Reduction)
 - Emits dense, single-line structured syntax for interactive elements.
-- Drastically reduces context window consumption compared to raw HTML dumps or verbose JSON trees.
+- Drastically reduces context window consumption compared to raw HTML dumps or verbose JSON trees (verified 79% token savings).
 
 ### 7. Action Receipts & Evidence Diffing
 - Every execution returns an evidence-grounded receipt comparing:
@@ -96,18 +98,24 @@ graph TD
 
 Before Antigravity can attach, Brave must run with `--remote-debugging-port=9222`.
 
-#### Option A: Windows Batch Launcher (Recommended)
-Double-click:
+#### Option A: Immediate Restart Batch (One-Click)
+Instantly closes and relaunches Brave with remote debugging and tab session restored:
+```cmd
+brave-launcher\launch-brave-now.cmd
+```
+
+#### Option B: Windows Interactive Batch Launcher
+Double-click to check status and safely restart with debugging if already running:
 ```cmd
 brave-launcher\launch-brave.cmd
 ```
 
-#### Option B: PowerShell Script
+#### Option C: PowerShell Script
 ```powershell
 .\brave-launcher\launch-brave.ps1
 ```
 
-#### Option C: Create a Permanent Connected Desktop Shortcut
+#### Option D: Create a Permanent Connected Desktop Shortcut
 Run this script once to create a permanent desktop shortcut that always opens Brave ready for AI connection:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\brave-launcher\create-connected-shortcut.ps1
@@ -155,16 +163,17 @@ The MCP server is registered in your global configuration:
 ---
 
 ### 1. `brave_tabs`
-Inspects, switches, creates, or closes tabs across personal and agent windows.
-- `action`: `"list"` (default), `"switch"`, `"new"`, `"new_window"`, `"close"`, `"focus"`
-- `index`: 0-based tab index
-- `url`: Destination URL for new tabs/windows
+Inspects, switches, creates, or closes tabs across personal and agent browsing sessions.
+- `action`: `"list"` (default), `"switch"`, `"new"`, `"close"`, `"focus"`
+- `index`: 0-based tab index (for `"switch"`, `"close"`, `"focus"`)
+- `url`: Destination URL for new tabs (for `"new"`)
 - `bringToFront`: `boolean` (default `false` to avoid stealing user focus)
 
 ### 2. `brave_observe`
 Extracts structured interactive element state with minimal token footprint.
-- `target`: `"agent"` (default: isolated agent window) or `"user"` (user's active tab)
-- `format`: `"compact"` (default, dense 1-line syntax saving ~65% tokens) or `"json"`
+- `target`: `"agent"` (default) or `"user"`
+- `tabIndex`: Optional integer to observe a specific tab index directly
+- `format`: `"compact"` (default, dense 1-line syntax saving ~79% tokens) or `"json"`
 - `scope`: CSS selector restricting observation to a specific container (e.g. `"main"`, `"#search-results"`, `"form"`)
 - `filter`: `"interactive"` (default), `"inputs"`, `"buttons_links"`, `"all"`
 - `includeScreenshot`: `boolean` (default `false` for rapid reasoning)
@@ -174,29 +183,36 @@ Extracts structured interactive element state with minimal token footprint.
 Executes an atomic browser action against the targeted tab.
 - `action`: `"click"`, `"type"`, `"press"`, `"scroll"`, `"hover"`, `"select_option"`, `"upload_file"`
 - `target`: `"agent"` (default) or `"user"`
+- `tabIndex`: Optional integer to target a specific tab index
 - `ref`: Ephemeral element reference from `brave_observe` (e.g. `"e1"`, `"e12"`)
-- `text`: Text string to type
+- `obs_id`: Observation ID from `brave_observe` (recommended guard to reject stale element clicks)
+- `text`: Text string to type (for `"type"`)
 - `pressEnter`: `boolean` (press Enter immediately after typing)
 - `key`: Key name (e.g. `"Enter"`, `"Tab"`, `"Escape"`, `"ArrowDown"`)
 - `direction`: `"down"`, `"up"`, `"top"`, `"bottom"`
 - `amount`: Scroll pixel magnitude (default `500`)
+- `option`: Value or label to select (for `"select_option"`)
+- `filePath`: Local file path to upload (for `"upload_file"`)
 
 ### 4. `brave_batch_act`
 Executes an array of actions sequentially in a single turn without round-trip LLM delays.
 - `actions`: Array of action objects following the `brave_act` schema
 - `target`: `"agent"` or `"user"`
+- `tabIndex`: Optional specific tab index
 - **Returns**: Array of step receipts verifying sequential completion.
 
 ### 5. `brave_eval`
 Executes arbitrary JavaScript directly in the tab context with zero token overhead.
 - `script`: JavaScript code string (e.g. `document.title` or bulk DOM extractors)
 - `target`: `"agent"` or `"user"`
+- `tabIndex`: Optional specific tab index
 
 ### 6. `brave_navigate`
 Controls tab navigation and history.
 - `url`: Target web address (e.g. `"https://github.com"`)
 - `action`: `"goto"` (default), `"reload"`, `"back"`, `"forward"`
 - `target`: `"agent"` or `"user"`
+- `tabIndex`: Optional specific tab index
 
 ---
 
@@ -213,7 +229,8 @@ Browser activity/
 │   │   ├── observer.js            # Tri-source observer & compact formatter
 │   │   ├── actions.js             # Action executor & element locator
 │   │   ├── verifier.js            # Action receipts & DOM state diffing
-│   │   ├── telemetry-server.js    # WebSocket server for Mission Control HUD
+│   │   ├── paths.js               # Centralized path utilities & downloads routing
+│   │   ├── telemetry-server.js    # WebSocket daemon (port 8765) for Mission Control HUD
 │   │   └── telemetry.js           # Lightweight logging client
 │   ├── scripts/                   # Modular automation scripts
 │   │   ├── cdp/                   # Port 9222 diagnostics & connection checks
@@ -226,12 +243,13 @@ Browser activity/
 │       ├── test-battery.js        # 14-point critical guarantee test battery
 │       └── test-token-optimizations.js # Token savings & compact formatting test
 ├── brave-launcher/                # Brave startup & connection utilities
-│   ├── launch-brave.cmd           # Double-click batch launcher
+│   ├── launch-brave-now.cmd       # Instant restart with CDP port 9222 & restore session
+│   ├── launch-brave.cmd           # Interactive double-click batch launcher
 │   ├── launch-brave.ps1           # PowerShell launcher
 │   └── create-connected-shortcut.ps1 # Permanent desktop shortcut generator
 ├── brave-extension/               # Companion browser extension & HUD
 │   ├── manifest.json              # Manifest V3 extension definition
-│   ├── background.js              # Service worker hot-reloader
+│   ├── background.js              # Service worker hot-reloader (port 8765)
 │   ├── content/                   # Floating Mission Control HUD
 │   └── popup/                     # Mission Control popup UI
 ├── artifacts/                     # [GITIGNORED] Runtime screenshots, test runs & temp data
