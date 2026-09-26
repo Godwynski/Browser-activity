@@ -78,6 +78,30 @@ graph TD
 
 ---
 
+## ⚡ 1-Click Quick Setup (For New Users & Friends)
+
+Getting started on any Windows machine takes just two steps:
+
+```bash
+# 1. Clone the repo
+git clone <repo-url>
+cd "Browser activity"
+
+# 2. Run the 1-click automated setup script (or double-click setup.cmd in File Explorer)
+setup.cmd
+```
+
+### What `setup.cmd` does automatically:
+1. **Installs all dependencies** for both the root runtime and the MCP bridge.
+2. **Registers MCP in your AI Agent**: Automatically detects and writes configuration for **Antigravity / Gemini CLI** (`~/.gemini/config/mcp_config.json`) and **Claude Desktop** without requiring any manual JSON editing.
+3. **Creates Desktop Shortcut**: Generates a **`Brave (Antigravity).lnk`** shortcut directly on your desktop that launches Brave on remote debugging port `9222`.
+
+### Daily Usage:
+1. Launch Brave using your **`Brave (Antigravity)`** desktop shortcut.
+2. Start chatting in **Antigravity** or **Claude Desktop** — your agent is connected immediately!
+
+---
+
 ## 🌟 Key Capabilities & Architectural Guarantees
 
 ### 1. Multi-Browser Support & Connection Modes

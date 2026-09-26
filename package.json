@@ -4,6 +4,8 @@
   "description": "Universal Browser Control Runtime — extensible browser-control layer for AI agents via MCP",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/configure-mcp.js",
+    "postinstall": "npm --prefix brave-mcp install",
     "test": "npm --prefix brave-mcp test",
     "test:core": "node tests/core/test-errors.js && node tests/core/test-base-adapter.js && node tests/core/test-browser-runtime.js",
     "test:core:errors": "node tests/core/test-errors.js",
