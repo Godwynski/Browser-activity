@@ -4,7 +4,7 @@ import fs from 'fs';
 import { PATHS, ensureArtifactDirs } from './paths.js';
 
 export class BraveManager {
-  constructor(cdpUrl = 'http://127.0.0.1:9222') {
+  constructor(cdpUrl = process.env.CDP_URL || 'http://127.0.0.1:9222') {
     this.cdpUrl = cdpUrl;
     this.browser = null;
     this.context = null;

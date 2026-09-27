@@ -2,7 +2,7 @@
 
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.6.1-blue.svg)](https://modelcontextprotocol.io/)
 [![Playwright Core](https://img.shields.io/badge/Playwright-1.50.1-green.svg)](https://playwright.dev/)
-[![Brave Browser](https://img.shields.io/badge/Brave-CDP%20Port%209222-orange.svg)](https://brave.com/)
+[![Browser Support](https://img.shields.io/badge/Browsers-Brave%20%7C%20Edge%20%7C%20Chrome-orange.svg)](#-browser-support-brave-edge-chrome)
 [![Zero Interruption](https://img.shields.io/badge/Co--Browsing-Isolated%20Window-purple.svg)](#-parallel-co-browsing-zero-interruption)
 
 Direct, evidence-grounded browser control bridge connecting **Antigravity / Gemini** directly to your active **Brave Browser** session via Playwright and the Chrome DevTools Protocol (CDP).
@@ -92,29 +92,28 @@ graph TD
 
 ## 🚀 Quick Start Guide
 
-### Step 1: Launch Brave with Remote Debugging
+### Step 1: Launch Your Browser with Remote Debugging (Port 9222)
 
-Before Antigravity can attach, Brave must run with `--remote-debugging-port=9222`.
+Before the AI agent can attach, your browser must run with `--remote-debugging-port=9222`. Both **Brave** and **Microsoft Edge** are supported out-of-the-box.
 
-#### Option A: Windows Batch Launcher (Recommended)
-Double-click:
-```cmd
-brave-launcher\launch-brave.cmd
-```
+#### If Using Brave Browser:
+- **Batch (Windows)**: Double-click `brave-launcher\launch-brave.cmd`
+- **PowerShell**: `.\brave-launcher\launch-brave.ps1`
+- **Permanent Desktop Shortcut**: Run `powershell -ExecutionPolicy Bypass -File .\brave-launcher\create-connected-shortcut.ps1`
 
-#### Option B: PowerShell Script
-```powershell
-.\brave-launcher\launch-brave.ps1
-```
-
-#### Option C: Create a Permanent Connected Desktop Shortcut
-Run this script once to create a permanent desktop shortcut that always opens Brave ready for AI connection:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\brave-launcher\create-connected-shortcut.ps1
-```
+#### If Using Microsoft Edge:
+- **Batch (Windows)**: Double-click `brave-launcher\launch-edge.cmd`
+- **PowerShell**: `.\brave-launcher\launch-edge.ps1`
+- **Manual PowerShell Launch**:
+  ```powershell
+  # 1. Terminate background processes (Edge Startup Boost blocks port 9222 if running)
+  taskkill /f /im msedge.exe
+  # 2. Launch Edge with CDP enabled
+  & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="$env:LOCALAPPDATA\Microsoft\Edge\User Data" --restore-last-session
+  ```
 
 > [!TIP]
-> If Brave is already running normally when you run the launcher, it will automatically offer to restart Brave with `--restore-last-session`, restoring all your active tabs and logins with debugging enabled.
+> **Edge Optimization**: Open `edge://settings/system` in Edge and turn **OFF** *"Startup boost"* and *"Continue running background extensions and apps when Microsoft Edge is closed"*. This ensures Edge fully terminates when closed and allows the debug flag to bind cleanly.
 
 ---
 
@@ -138,6 +137,79 @@ The MCP server is registered in your global configuration:
 ```
 
 *Because this configuration is global, any workspace in Antigravity has automatic access to `brave-control`.*
+
+---
+
+## 💻 Multi-Machine & CLI Setup Guide
+
+You can easily run this MCP server and control browsers from the CLI or across other computers.
+
+### Scenario A: Running on Another Computer (CLI / Local Agent)
+
+1. **Install Prerequisites**:
+   - [Node.js](https://nodejs.org/) (v18 or higher)
+   - Git
+   - Brave, Microsoft Edge, or Google Chrome
+
+2. **Clone & Install**:
+   ```bash
+   git clone <repo-url> "Browser-activity"
+   cd "Browser-activity/brave-mcp"
+   npm install
+   ```
+
+3. **Start the Browser on Port 9222**:
+   - **Windows**: Run `..\brave-launcher\launch-brave.cmd` or `..\brave-launcher\launch-edge.cmd`
+   - **macOS (Edge)**:
+     ```bash
+     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="$HOME/Library/Application Support/Microsoft Edge/Default"
+     ```
+   - **Linux (Edge / Brave)**:
+     ```bash
+     microsoft-edge --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="$HOME/.config/microsoft-edge"
+     ```
+   - **Verify Connectivity**:
+     ```bash
+     curl http://127.0.0.1:9222/json/version
+     ```
+
+4. **Connect Your Preferred CLI / Agent**:
+   - **Antigravity CLI / IDE (`agy`)**:
+     Add to `~/.gemini/config/mcp_config.json`:
+     ```json
+     {
+       "mcpServers": {
+         "brave-control": {
+           "command": "node",
+           "args": ["<path-to-repo>/brave-mcp/src/index.js"]
+         }
+       }
+     }
+     ```
+   - **Claude Code CLI**:
+     ```bash
+     claude mcp add brave-control node <path-to-repo>/brave-mcp/src/index.js
+     ```
+   - **Cursor / Windsurf / Codex**:
+     Add standard MCP server entry: Command `node`, Args `["<path-to-repo>/brave-mcp/src/index.js"]`.
+
+---
+
+### Scenario B: Remote Control Over Network (Browser on Machine A, CLI on Machine B)
+
+If your browser runs on **Machine A** (`192.168.1.50`) and your CLI runs on **Machine B**:
+
+1. On **Machine A**, run Edge or Brave with `--remote-debugging-port=9222 --remote-allow-origins=*` (ensure Windows firewall allows port 9222 inbound on your local network).
+2. On **Machine B**, set the `CDP_URL` environment variable:
+   ```bash
+   # Windows (PowerShell)
+   $env:CDP_URL = "http://192.168.1.50:9222"
+   node src/index.js
+
+   # Linux / macOS
+   export CDP_URL="http://192.168.1.50:9222"
+   node src/index.js
+   ```
 
 ---
 
@@ -225,9 +297,11 @@ Browser activity/
 │       ├── test-mcp-protocol.js   # MCP stdio protocol validation
 │       ├── test-battery.js        # 14-point critical guarantee test battery
 │       └── test-token-optimizations.js # Token savings & compact formatting test
-├── brave-launcher/                # Brave startup & connection utilities
-│   ├── launch-brave.cmd           # Double-click batch launcher
-│   ├── launch-brave.ps1           # PowerShell launcher
+├── brave-launcher/                # Browser startup & CDP connection utilities
+│   ├── launch-brave.cmd           # Double-click batch launcher for Brave
+│   ├── launch-brave.ps1           # PowerShell launcher for Brave
+│   ├── launch-edge.cmd            # Double-click batch launcher for Microsoft Edge
+│   ├── launch-edge.ps1            # PowerShell launcher for Microsoft Edge
 │   └── create-connected-shortcut.ps1 # Permanent desktop shortcut generator
 ├── brave-extension/               # Companion browser extension & HUD
 │   ├── manifest.json              # Manifest V3 extension definition
@@ -250,7 +324,7 @@ To verify server health, CDP connectivity, and protocol guarantees, run:
 ```bash
 cd brave-mcp
 
-# 1. Test live CDP connection to Brave (Port 9222)
+# 1. Test live CDP connection to browser (Port 9222)
 npm test
 
 # 2. Test MCP stdio protocol contracts (all 6 tools)
@@ -271,13 +345,17 @@ npm run test:all
 ## 🔧 Troubleshooting Guide
 
 ### 1. `Error: connect ECONNREFUSED 127.0.0.1:9222`
-- **Cause**: Brave is either not running or was launched without remote debugging enabled.
-- **Fix**: Run `brave-launcher\launch-brave.cmd`. If Brave is already open, accept the prompt to restart with session restore.
+- **Cause**: The browser is either not running or was launched without remote debugging enabled.
+- **Fix**: Run `brave-launcher\launch-brave.cmd` (for Brave) or `brave-launcher\launch-edge.cmd` (for Edge).
 
-### 2. Antigravity does not list `brave-control` tools
+### 2. Edge does not open port 9222 despite launching with the flag
+- **Cause**: Microsoft Edge has background processes running by default ("Startup Boost"), causing new instances to delegate to the background process without applying the `--remote-debugging-port` flag.
+- **Fix**: Run `taskkill /f /im msedge.exe` before launching, or launch via `brave-launcher\launch-edge.cmd` (which terminates lingering background processes automatically). In Edge, turn off "Startup boost" under `edge://settings/system`.
+
+### 3. Antigravity does not list `brave-control` tools
 - **Cause**: The MCP server is either not configured in `mcp_config.json` or path syntax has unescaped backslashes.
 - **Fix**: Verify [`C:\Users\Godwyn\.gemini\config\mcp_config.json`](file:///C:/Users/Godwyn/.gemini/config/mcp_config.json) points to `c:\\Users\\Godwyn\\Documents\\Projects\\Browser activity\\brave-mcp\\run-mcp.cmd`.
 
-### 3. Agent is stealing focus or clicking on personal tabs
+### 4. Agent is stealing focus or clicking on personal tabs
 - **Cause**: Actions are being directed to `target: "user"` instead of the default isolated `target: "agent"`.
 - **Fix**: Ensure all autonomous operations specify or default to `target: "agent"`.
