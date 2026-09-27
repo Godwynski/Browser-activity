@@ -23,22 +23,77 @@ export class BrowserObserver {
   }
 
   /**
-   * Formats elements into a compact, token-dense text representation.
-   * Typical token reduction: ~65% compared to full JSON object trees.
+   * Formats elements into a compact, token-dense text representation with
+   * hybrid spatial partitioning (viewport items in full detail, offscreen ledger)
+   * and prominent page alert reporting.
    */
-  formatCompact(elements) {
+  formatCompact(elements, meta = {}) {
     if (!elements || elements.length === 0) return "(No interactive elements detected)";
-    return elements.map(e => {
-      let line = `[${e.ref}] <${e.role || 'element'}>`;
-      if (e.name) line += ` "${e.name}"`;
-      if (e.value) line += ` value="${e.value}"`;
-      if (e.checked) line += ` [checked]`;
-      if (e.disabled) line += ` [disabled]`;
-      if (e.domMeta?.id) line += ` #${e.domMeta.id}`;
-      if (e.frameIndex !== null && e.frameIndex !== undefined) line += ` (iframe ${e.frameIndex})`;
-      if (e.inViewport === false) line += ` [off-screen]`;
-      return line;
-    }).join('\n');
+
+    const visible = [];
+    const offscreenBelow = [];
+    const offscreenAbove = [];
+
+    for (const e of elements) {
+      if (e.inViewport === false) {
+        if (e.domMeta && e.domMeta.top < 0) {
+          offscreenAbove.push(e);
+        } else {
+          offscreenBelow.push(e);
+        }
+      } else {
+        visible.push(e);
+      }
+    }
+
+    const lines = [];
+
+    if (meta.title || meta.url) {
+      lines.push(`# PAGE: ${meta.title || 'Untitled'} | y:${meta.scrollY || 0}/${meta.docHeight || 0} [${meta.obsId || ''}]`);
+      if (meta.url) lines.push(`URL: ${meta.url}`);
+    }
+
+    if (meta.alerts && meta.alerts.length > 0) {
+      for (const alert of meta.alerts) {
+        lines.push(`⚠️ PAGE ALERT: "${alert}"`);
+      }
+    }
+
+    if (lines.length > 0) lines.push('');
+
+    // 1. Visible elements rendered in full detail
+    if (visible.length > 0) {
+      lines.push(`VISIBLE (${visible.length} items):`);
+      for (const e of visible) {
+        let line = `[${e.ref}] <${e.role || 'element'}>`;
+        if (e.name) line += ` "${e.name}"`;
+        if (e.value) line += ` value="${e.value}"`;
+        if (e.checked) line += ` [checked]`;
+        if (e.disabled) line += ` [disabled]`;
+        if (e.domMeta?.id) line += ` #${e.domMeta.id}`;
+        if (e.frameIndex !== null && e.frameIndex !== undefined) line += ` (iframe ${e.frameIndex})`;
+        lines.push(line);
+      }
+    } else {
+      lines.push(`VISIBLE: (No interactive elements in current viewport)`);
+    }
+
+    // 2. Offscreen Landmark Ledger: dense summary with valid refs (direct action auto-scrolls)
+    const hasOffscreen = offscreenAbove.length > 0 || offscreenBelow.length > 0;
+    if (hasOffscreen) {
+      lines.push('');
+      lines.push(`OFFSCREEN (direct action auto-scrolls):`);
+      if (offscreenAbove.length > 0) {
+        const items = offscreenAbove.map(e => `${e.ref} (<${e.role || 'element'}> "${e.name || e.domMeta?.id || ''}")`).slice(0, 8);
+        lines.push(`[Above]: ${items.join(', ')}${offscreenAbove.length > 8 ? ` ... (+${offscreenAbove.length - 8} more)` : ''}`);
+      }
+      if (offscreenBelow.length > 0) {
+        const items = offscreenBelow.map(e => `${e.ref} (<${e.role || 'element'}> "${e.name || e.domMeta?.id || ''}")`).slice(0, 12);
+        lines.push(`[Below]: ${items.join(', ')}${offscreenBelow.length > 12 ? ` ... (+${offscreenBelow.length - 12} more)` : ''}`);
+      }
+    }
+
+    return lines.join('\n');
   }
 
   /**
@@ -122,6 +177,23 @@ export class BrowserObserver {
     }));
 
     const domFingerprint = await this.getDomFingerprint(page);
+
+    // 1b. Live-Region & Page Alert Sentinel (captures form errors, banners, toast messages)
+    const alerts = await page.evaluate(() => {
+      const alertNodes = document.querySelectorAll(
+        '[role="alert"], [role="status"], [aria-live="assertive"], [aria-live="polite"], ' +
+        '.error-message, .alert, .toast, .notice-error, .invalid-feedback, [aria-invalid="true"]'
+      );
+      const messages = [];
+      for (const el of alertNodes) {
+        const text = (el.innerText || el.textContent || '').trim();
+        const rect = el.getBoundingClientRect();
+        if (text && (rect.width > 0 || rect.height > 0)) {
+          messages.push(text.slice(0, 150));
+        }
+      }
+      return Array.from(new Set(messages)).slice(0, 3);
+    }).catch(() => []);
 
     const elements = [];
     const elementMap = new Map();
@@ -306,12 +378,20 @@ export class BrowserObserver {
       timestamp: Date.now(),
       domState,
       domFingerprint,
+      alerts,
       elements,
       elementMap,
       screenshot: screenshotBase64
     };
 
-    const compactOutput = this.formatCompact(elements);
+    const compactOutput = this.formatCompact(elements, {
+      title,
+      url,
+      alerts,
+      scrollY: domState.scrollY,
+      docHeight: domState.documentHeight,
+      obsId
+    });
 
     return {
       obs_id: obsId,
@@ -331,6 +411,7 @@ export class BrowserObserver {
           height: domState.innerHeight
         }
       },
+      alerts,
       format,
       element_count: elements.length,
       elements_compact: compactOutput,

@@ -64,16 +64,17 @@ All scripts must be placed in their appropriate subdirectory under `brave-mcp/sc
 
 ---
 
-## 🛠️ The 6 Core MCP Tools (`brave-control`)
+## 🛠️ The 7 Core MCP Tools (`brave-control`)
 
-Antigravity controls Brave via the following 6 MCP tools registered in `C:\Users\Godwyn\.gemini\config\mcp_config.json`:
+Antigravity controls Brave via the following 7 MCP tools registered in `C:\Users\Godwyn\.gemini\config\mcp_config.json`:
 
 | Tool | Primary Purpose | Key Parameters |
 | :--- | :--- | :--- |
 | `brave_tabs` | Manage and inspect open tabs | `action` (`list`, `switch`, `new`, `new_window`, `close`, `focus`), `index`, `url` |
-| `brave_observe` | Extract structured DOM/ARIA state with minimal token footprint | `target` (`agent` / `user`), `scope` (CSS selector), `filter`, `includeScreenshot` |
-| `brave_act` | Perform browser actions (click, type, scroll, hover) | `action`, `ref` (ephemeral ID e.g. `e1`), `text`, `key`, `direction` |
-| `brave_batch_act` | Execute multiple actions sequentially without LLM loops | `actions` (array of action objects), `target` |
+| `brave_observe` | Extract hybrid spatial DOM/ARIA state with minimal token footprint | `target` (`agent` / `user`), `scope`, `filter`, `format` (`compact`/`json`), `includeScreenshot` |
+| `brave_read` | Dedicated zero-DOM article and table extraction as clean Markdown | `target`, `scope`, `maxLength` (saves ~90% tokens on reading tasks) |
+| `brave_act` | Perform browser actions with automatic compound observation | `action`, `ref` (ephemeral ID e.g. `e1`), `text`, `and_observe` (default `true`) |
+| `brave_batch_act` | Execute multiple actions sequentially without LLM loops | `actions` (array of action objects), `and_observe` (default `true`), `target` |
 | `brave_eval` | Execute direct in-page JavaScript for instant zero-token scraping | `script` (JS string), `target` |
 | `brave_navigate` | Direct tab navigation | `url`, `action` (`goto`, `reload`, `back`, `forward`), `target` |
 

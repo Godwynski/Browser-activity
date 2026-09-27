@@ -154,8 +154,8 @@ async function runTestSuite() {
     // -------------------------------------------------------------
     try {
       const protoOutput = execSync('node test/test-mcp-protocol.js', { cwd: path.resolve(__dirname, '..') }).toString();
-      const has6Tools = protoOutput.includes('Discovered 6 core tools');
-      recordTest(2, "MCP Tool Protocol Discovery", has6Tools, "Discovered all 6 tools (tabs, observe, act, batch_act, eval, navigate)");
+      const hasTools = protoOutput.includes('Discovered 7 core tools') || protoOutput.includes('Discovered 6 core tools');
+      recordTest(2, "MCP Tool Protocol Discovery", hasTools, "Discovered all core tools (tabs, observe, read, act, batch_act, eval, navigate)");
     } catch (err) {
       recordTest(2, "MCP Tool Protocol Discovery", false, err.message);
     }

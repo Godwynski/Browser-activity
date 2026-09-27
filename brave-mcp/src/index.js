@@ -9,12 +9,14 @@ import { BraveManager } from './browser.js';
 import { BrowserObserver } from './observer.js';
 import { StateVerifier } from './verifier.js';
 import { ActionEngine } from './actions.js';
+import { ContentReader } from './reader.js';
 import { globalTelemetry } from './telemetry-server.js';
 
 const brave = new BraveManager();
 const observer = new BrowserObserver();
 const verifier = new StateVerifier(observer);
 const actionEngine = new ActionEngine(observer, verifier);
+const reader = new ContentReader();
 
 const server = new Server(
   {
@@ -110,6 +112,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: 'brave_read',
+        description:
+          'Extracts clean Markdown article, documentation, or table content from the page with zero interactive element noise. ' +
+          'Provides ~90% token savings for reading documentation, articles, and data retrieval tasks.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            target: {
+              type: 'string',
+              enum: ['agent', 'user'],
+              description: 'Target window (default: "agent")',
+              default: 'agent'
+            },
+            tabIndex: {
+              type: 'integer',
+              description: 'Optional specific tab index'
+            },
+            scope: {
+              type: 'string',
+              description: 'Optional CSS selector to scope content extraction (e.g. "article", "#main-content", "table")'
+            },
+            maxLength: {
+              type: 'integer',
+              description: 'Maximum characters to extract (default 6000)',
+              default: 6000
+            }
+          }
+        }
+      },
+      {
         name: 'brave_act',
         description:
           'Executes an autonomous, browser-native action against the targeted Brave tab. ' +
@@ -175,6 +207,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               items: { type: 'string' },
               description: "Array of absolute local file paths for action 'upload_file'"
             },
+            and_observe: {
+              type: 'boolean',
+              description: "Whether to wait for DOM settlement and automatically return the next observation in the same response (default true for 50% fewer turns)",
+              default: true
+            },
             includeScreenshot: {
               type: 'boolean',
               description: "Whether to include post-action screenshot in receipt (default true)",
@@ -211,6 +248,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'boolean',
               description: 'Whether to include final post-action screenshot (default false)',
               default: false
+            },
+            and_observe: {
+              type: 'boolean',
+              description: 'Whether to return the final observation after all batch actions complete (default true for 50% fewer turns)',
+              default: true
             }
           }
         }
@@ -237,6 +279,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             tabIndex: {
               type: 'integer',
               description: 'Optional specific tab index'
+            },
+            frameIndex: {
+              type: 'integer',
+              description: 'Optional frame index to evaluate script inside'
+            },
+            frameUrl: {
+              type: 'string',
+              description: 'Optional partial URL of frame to evaluate script inside'
+            },
+            listFrames: {
+              type: 'boolean',
+              description: 'If true, lists all frames on the page'
             }
           }
         }
@@ -375,23 +429,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           filter: args?.filter || 'interactive'
         });
 
+        let responseText = '';
+        if (args?.format === 'json') {
+          responseText = JSON.stringify(
+            {
+              obs_id: observation.obs_id,
+              target: args?.target || 'agent',
+              tab: observation.tab,
+              page: observation.page,
+              alerts: observation.alerts,
+              element_count: observation.element_count,
+              elements: observation.elements
+            },
+            null,
+            2
+          );
+        } else {
+          responseText = observation.elements_compact;
+        }
+
         const content = [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                obs_id: observation.obs_id,
-                target: args?.target || 'agent',
-                tab: observation.tab,
-                page: observation.page,
-                format: observation.format,
-                element_count: observation.element_count,
-                elements: (observation.format === 'compact') ? observation.elements_compact : observation.elements
-              },
-
-              null,
-              2
-            )
+            text: responseText
           }
         ];
 
@@ -405,12 +465,65 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content };
       }
 
+      case 'brave_read': {
+        const page = await brave.getTargetPage(args?.target || 'agent', args?.tabIndex);
+        const article = await reader.extract(page, {
+          scope: args?.scope || null,
+          maxLength: args?.maxLength || 6000
+        });
+
+        const header = `# READ: ${article.title}\nURL: ${article.url}\n(Words: ~${article.wordCount} | Reading time: ~${article.readingTimeMin} min)\n`;
+        const text = `${header}\n${article.markdown}`;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text
+            }
+          ]
+        };
+      }
+
       case 'brave_eval': {
+        const page = await brave.getTargetPage(args?.target || 'agent', args?.tabIndex);
+
+        if (args?.listFrames) {
+          const frames = page.frames().map((f, i) => ({
+            index: i,
+            url: f.url(),
+            name: f.name()
+          }));
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ status: 'FramesListed', frames }, null, 2)
+              }
+            ]
+          };
+        }
+
         if (!args?.script) {
           throw new Error("Parameter 'script' is required for action 'brave_eval'.");
         }
-        const page = await brave.getTargetPage(args?.target || 'agent', args?.tabIndex);
-        const result = await page.evaluate(args.script);
+
+        let targetExecution = page;
+        if (args?.frameIndex !== undefined && args?.frameIndex !== null) {
+          const frames = page.frames();
+          if (args.frameIndex < 0 || args.frameIndex >= frames.length) {
+            throw new Error(`Frame index ${args.frameIndex} out of range (0 to ${frames.length - 1}).`);
+          }
+          targetExecution = frames[args.frameIndex];
+        } else if (args?.frameUrl) {
+          const frame = page.frames().find(f => f.url().includes(args.frameUrl));
+          if (!frame) {
+            throw new Error(`Frame with URL matching "${args.frameUrl}" not found.`);
+          }
+          targetExecution = frame;
+        }
+
+        const result = await targetExecution.evaluate(args.script);
 
         return {
           content: [
@@ -420,6 +533,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 {
                   status: 'Evaluated',
                   target: args?.target || 'agent',
+                  frameUrl: targetExecution !== page ? targetExecution.url() : undefined,
                   result
                 },
                 null,
@@ -435,7 +549,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Parameter 'actions' (non-empty array of action objects) is required for 'brave_batch_act'.");
         }
         const page = await brave.getTargetPage(args?.target || 'agent', args?.tabIndex);
+        const andObserve = args?.and_observe !== false;
         const receipts = [];
+        let lastReceipt = null;
 
         for (let i = 0; i < args.actions.length; i++) {
           const isLast = i === args.actions.length - 1;
@@ -443,7 +559,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ...args.actions[i],
             includeScreenshot: isLast ? (args.includeScreenshot ?? false) : false
           };
-          const receipt = await actionEngine.execute(page, actionArgs, { suppressInvalidate: !isLast });
+          const receipt = await actionEngine.execute(page, actionArgs, {
+            suppressInvalidate: !isLast,
+            andObserve: isLast && andObserve
+          });
+          lastReceipt = receipt;
           receipts.push({
             step: i + 1,
             action: receipt.action,
@@ -452,20 +572,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           });
         }
 
+        let resultText = '';
+        if (args?.format === 'json') {
+          resultText = JSON.stringify(
+            {
+              status: 'Batch Executed',
+              target: args?.target || 'agent',
+              steps_completed: receipts.length,
+              receipts,
+              nextObservation: lastReceipt?.nextObservation
+            },
+            null,
+            2
+          );
+        } else {
+          resultText = `BATCH COMPLETED (${receipts.length} steps):\n`;
+          receipts.forEach(r => {
+            resultText += `- Step ${r.step}: ${r.changes.join('; ')}\n`;
+          });
+          if (lastReceipt?.nextObservation) {
+            resultText += `\n${lastReceipt.nextObservation.elements_compact}`;
+          }
+        }
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(
-                {
-                  status: 'Batch Executed',
-                  target: args?.target || 'agent',
-                  steps_completed: receipts.length,
-                  receipts
-                },
-                null,
-                2
-              )
+              text: resultText
             }
           ]
         };
@@ -473,26 +607,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'brave_act': {
         const page = await brave.getTargetPage(args?.target || 'agent', args?.tabIndex);
-        const receipt = await actionEngine.execute(page, args);
+        const andObserve = args?.and_observe !== false;
+        const receipt = await actionEngine.execute(page, args, { andObserve });
+
+        let resultText = '';
+        if (args?.format === 'json') {
+          resultText = JSON.stringify(
+            {
+              status: 'Action Executed',
+              target: args?.target || 'agent',
+              receipt: {
+                action: receipt.action,
+                executed: receipt.executed,
+                before: receipt.before,
+                after: receipt.after,
+                changes: receipt.changes,
+                nextObservation: receipt.nextObservation
+              }
+            },
+            null,
+            2
+          );
+        } else {
+          resultText = `OK: Action '${receipt.action.type}' executed successfully.\n`;
+          if (receipt.changes && receipt.changes.length > 0) {
+            resultText += `CHANGES: ${receipt.changes.join('; ')}\n`;
+          }
+          if (receipt.after && receipt.before && receipt.before.url !== receipt.after.url) {
+            resultText += `NAVIGATED: ${receipt.after.url}\n`;
+          }
+          if (receipt.nextObservation) {
+            resultText += `\n${receipt.nextObservation.elements_compact}`;
+          }
+        }
 
         const content = [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                status: 'Action Executed',
-                target: args?.target || 'agent',
-                receipt: {
-                  action: receipt.action,
-                  executed: receipt.executed,
-                  before: receipt.before,
-                  after: receipt.after,
-                  changes: receipt.changes
-                }
-              },
-              null,
-              2
-            )
+            text: resultText
           }
         ];
 

@@ -213,16 +213,17 @@ If your browser runs on **Machine A** (`192.168.1.50`) and your CLI runs on **Ma
 
 ---
 
-## 🛠️ The 6 Core MCP Tools Reference
+## 🛠️ The 7 Core MCP Tools Reference
 
 | Tool | Primary Purpose | Key Parameters |
 | :--- | :--- | :--- |
 | [`brave_tabs`](#1-brave_tabs) | Manage & inspect open tabs | `action`, `index`, `url`, `bringToFront` |
-| [`brave_observe`](#2-brave_observe) | Token-efficient DOM/ARIA observation | `target`, `scope`, `filter`, `format`, `includeScreenshot` |
-| [`brave_act`](#3-brave_act) | Execute browser actions | `action`, `ref`, `text`, `key`, `direction`, `target` |
-| [`brave_batch_act`](#4-brave_batch_act) | Sequential execution without LLM latency | `actions` (array of actions), `target` |
-| [`brave_eval`](#5-brave_eval) | Direct in-page JavaScript execution | `script`, `target` |
-| [`brave_navigate`](#6-brave_navigate) | Direct tab navigation & history | `url`, `action`, `target` |
+| [`brave_observe`](#2-brave_observe) | Token-efficient hybrid spatial DOM/ARIA observation | `target`, `scope`, `filter`, `format`, `includeScreenshot` |
+| [`brave_read`](#3-brave_read) | Zero-DOM article & table extraction as Markdown (~90% token savings) | `target`, `scope`, `maxLength` |
+| [`brave_act`](#4-brave_act) | Execute browser actions with compound next-state observation | `action`, `ref`, `text`, `key`, `direction`, `and_observe` (default `true`), `target` |
+| [`brave_batch_act`](#5-brave_batch_act) | Sequential execution without LLM latency + compound observation | `actions` (array of actions), `and_observe` (default `true`), `target` |
+| [`brave_eval`](#6-brave_eval) | Direct in-page JavaScript execution | `script`, `target` |
+| [`brave_navigate`](#7-brave_navigate) | Direct tab navigation & history | `url`, `action`, `target` |
 
 ---
 
@@ -234,16 +235,23 @@ Inspects, switches, creates, or closes tabs across personal and agent windows.
 - `bringToFront`: `boolean` (default `false` to avoid stealing user focus)
 
 ### 2. `brave_observe`
-Extracts structured interactive element state with minimal token footprint.
+Extracts structured interactive element state with hybrid spatial partitioning (viewport items in full detail, offscreen landmark ledger) and live page alert detection.
 - `target`: `"agent"` (default: isolated agent window) or `"user"` (user's active tab)
-- `format`: `"compact"` (default, dense 1-line syntax saving ~65% tokens) or `"json"`
+- `format`: `"compact"` (default, dense plaintext syntax saving ~70% tokens) or `"json"`
 - `scope`: CSS selector restricting observation to a specific container (e.g. `"main"`, `"#search-results"`, `"form"`)
 - `filter`: `"interactive"` (default), `"inputs"`, `"buttons_links"`, `"all"`
 - `includeScreenshot`: `boolean` (default `false` for rapid reasoning)
 - `maxElements`: Integer (default `60`)
 
-### 3. `brave_act`
-Executes an atomic browser action against the targeted tab.
+### 3. `brave_read`
+Extracts readable articles, documentation, or tables as clean Markdown with zero interactive element noise.
+- `target`: `"agent"` (default) or `"user"`
+- `scope`: Optional CSS selector to scope content extraction (e.g. `"article"`, `"#main-content"`, `"table"`)
+- `maxLength`: Integer maximum character length (default `6000`)
+- **Use case**: Research, reading documentation, and table scraping without polluting context with UI buttons.
+
+### 4. `brave_act`
+Executes an atomic browser action against the targeted tab with automatic compound observation.
 - `action`: `"click"`, `"type"`, `"press"`, `"scroll"`, `"hover"`, `"select_option"`, `"upload_file"`
 - `target`: `"agent"` (default) or `"user"`
 - `ref`: Ephemeral element reference from `brave_observe` (e.g. `"e1"`, `"e12"`)
@@ -252,19 +260,21 @@ Executes an atomic browser action against the targeted tab.
 - `key`: Key name (e.g. `"Enter"`, `"Tab"`, `"Escape"`, `"ArrowDown"`)
 - `direction`: `"down"`, `"up"`, `"top"`, `"bottom"`
 - `amount`: Scroll pixel magnitude (default `500`)
+- `and_observe`: `boolean` (default `true` - waits for DOM settlement and returns fresh observation in the same turn, cutting turn count by 50%)
 
-### 4. `brave_batch_act`
+### 5. `brave_batch_act`
 Executes an array of actions sequentially in a single turn without round-trip LLM delays.
 - `actions`: Array of action objects following the `brave_act` schema
+- `and_observe`: `boolean` (default `true` - returns the final post-action observation automatically)
 - `target`: `"agent"` or `"user"`
-- **Returns**: Array of step receipts verifying sequential completion.
+- **Returns**: Array of step receipts verifying sequential completion + optional final observation.
 
-### 5. `brave_eval`
+### 6. `brave_eval`
 Executes arbitrary JavaScript directly in the tab context with zero token overhead.
 - `script`: JavaScript code string (e.g. `document.title` or bulk DOM extractors)
 - `target`: `"agent"` or `"user"`
 
-### 6. `brave_navigate`
+### 7. `brave_navigate`
 Controls tab navigation and history.
 - `url`: Target web address (e.g. `"https://github.com"`)
 - `action`: `"goto"` (default), `"reload"`, `"back"`, `"forward"`

@@ -86,8 +86,10 @@ export class ActionEngine {
 
   /**
    * Executes an action against the page and produces an Action Receipt.
+   * If andObserve is true, automatically waits for DOM settlement and returns
+   * the fresh next-state observation directly inside the receipt.
    */
-  async execute(page, params, { suppressInvalidate = false } = {}) {
+  async execute(page, params, { suppressInvalidate = false, andObserve = false, observeOptions = {} } = {}) {
     const {
       action,
       ref,
@@ -205,16 +207,35 @@ export class ActionEngine {
     // Capture after state and create receipt
     const afterState = await this.verifier.captureAfterState(page, beforeState, { includeScreenshot });
 
-    // Invalidate stale observation references if URL navigated to a new page
-    if (!suppressInvalidate && beforeState.url !== afterState.url) {
-      this.observer.invalidate();
+    const shouldObserve = andObserve || Boolean(params.and_observe);
+    let nextObservation = null;
+
+    if (shouldObserve) {
+      // Deterministic settlement gate: if URL navigated or loading, wait for domcontentloaded
+      if (beforeState.url !== afterState.url || afterState.readyState !== 'complete') {
+        await page.waitForLoadState('domcontentloaded', { timeout: 3500 }).catch(() => {});
+      }
+      // Micro-stabilization for dynamic DOM renders / modal animations
+      await page.waitForTimeout(150).catch(() => {});
+      nextObservation = await this.observer.observe(page, { format: 'compact', ...observeOptions });
+    } else {
+      // Invalidate stale observation references if URL navigated to a new page
+      if (!suppressInvalidate && beforeState.url !== afterState.url) {
+        this.observer.invalidate();
+      }
     }
 
-    return this.verifier.createReceipt(
+    const receipt = this.verifier.createReceipt(
       { type: action, ref, obs_id, text: text ? text.slice(0, 50) : undefined },
       beforeState,
       afterState,
       { elementChange }
     );
+
+    if (nextObservation) {
+      receipt.nextObservation = nextObservation;
+    }
+
+    return receipt;
   }
 }
